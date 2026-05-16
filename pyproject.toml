@@ -3,7 +3,7 @@ name = "mcp-server-iterm2"
 version = "0.1.0"
 description = "MCP server exposing iTerm2 to agents for observation and non-destructive annotation."
 readme = "README.md"
-requires-python = ">=3.14"
+requires-python = ">=3.12"
 license = { file = "LICENSE" }
 authors = [{ name = "Rob Trame", email = "me@r6e.dev" }]
 keywords = ["mcp", "iterm2", "claude", "ai", "agent"]
@@ -13,6 +13,8 @@ classifiers = [
   "License :: OSI Approved :: MIT License",
   "Operating System :: MacOS",
   "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3.14",
 ]
 dependencies = ["mcp>=1.12", "iterm2>=2.7"]
@@ -42,7 +44,7 @@ asyncio_mode = "auto"
 
 [tool.ruff]
 line-length = 100
-target-version = "py314"
+target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "UP", "B", "SIM", "RUF"]
