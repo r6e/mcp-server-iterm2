@@ -7,11 +7,12 @@ import os
 import pytest
 
 from mcp_server_iterm2.connection import ITermClient
+from mcp_server_iterm2.session import normalize_iterm_session_id
 
 
 @pytest.fixture(scope="module")
 def iterm_session_id() -> str:
-    sid = os.environ.get("ITERM_SESSION_ID")
+    sid = normalize_iterm_session_id(os.environ.get("ITERM_SESSION_ID"))
     if not sid:
         pytest.skip("ITERM_SESSION_ID not set; integration tests require running inside iTerm2")
     return sid

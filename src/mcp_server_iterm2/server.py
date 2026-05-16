@@ -14,6 +14,7 @@ from mcp_server_iterm2.errors import (
     MCPIterm2Error,
     to_error_text,
 )
+from mcp_server_iterm2.session import normalize_iterm_session_id
 from mcp_server_iterm2.tools import read as read_tools
 from mcp_server_iterm2.tools import write as write_tools
 
@@ -196,7 +197,7 @@ def create_server(*, client: Any) -> FastMCP:
 
 
 def _env_session_id() -> str | None:
-    return os.environ.get("ITERM_SESSION_ID")
+    return normalize_iterm_session_id(os.environ.get("ITERM_SESSION_ID"))
 
 
 def main() -> None:
