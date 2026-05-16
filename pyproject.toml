@@ -1,0 +1,54 @@
+[project]
+name = "mcp-server-iterm2"
+version = "0.1.0"
+description = "MCP server exposing iTerm2 to agents for observation and non-destructive annotation."
+readme = "README.md"
+requires-python = ">=3.14"
+license = { file = "LICENSE" }
+authors = [{ name = "Rob Trame", email = "me@r6e.co" }]
+keywords = ["mcp", "iterm2", "claude", "ai", "agent"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: MacOS",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.14",
+]
+dependencies = ["mcp>=1.12", "iterm2>=2.7"]
+
+[project.scripts]
+mcp-server-iterm2 = "mcp_server_iterm2.server:main"
+
+[project.urls]
+Homepage = "https://github.com/rtrame/mcp-server-iterm2"
+Repository = "https://github.com/rtrame/mcp-server-iterm2"
+Issues = "https://github.com/rtrame/mcp-server-iterm2/issues"
+
+[build-system]
+requires = ["uv_build>=0.11.14,<0.12"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = ["pytest>=8.0", "pytest-asyncio>=0.24", "ruff>=0.7", "ty>=0.0.1a1"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+  "integration: requires a running iTerm2 (opt-in; not run by default)",
+]
+addopts = "-m 'not integration'"
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "SIM", "RUF"]
+ignore = []
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.ty]

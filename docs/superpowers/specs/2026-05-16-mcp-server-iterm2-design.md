@@ -2,13 +2,13 @@
 
 **Status:** Approved, pending implementation plan
 **Date:** 2026-05-16
-**Owner:** rob (me@r6e.co)
+**Owner:** rob (<me@r6e.co>)
 
 ## Goal
 
 A Model Context Protocol (MCP) server that exposes iTerm2 to agents for **observation** and **non-destructive annotation**. Agents can inspect sessions, read screen contents, and decorate sessions (badge, title, tab color, user variables, notifications). They cannot inject keystrokes, close or spawn sessions, focus tabs, or otherwise alter the user's working environment.
 
-The primary use case is an agent running *inside* iTerm2 that wants to read its own context and label its own session — for example, setting a badge that reflects which task it is working on, or reading scrollback to recover from a lost interactive prompt.
+The primary use case is an agent running _inside_ iTerm2 that wants to read its own context and label its own session — for example, setting a badge that reflects which task it is working on, or reading scrollback to recover from a lost interactive prompt.
 
 ## Non-goals
 
@@ -46,7 +46,7 @@ The connection persists for the server's lifetime. On disconnect (iTerm2 quit/re
 
 ### Module layout
 
-```
+```plaintext
 mcp-server-iterm2/
   src/mcp_server_iterm2/
     __init__.py
@@ -89,27 +89,27 @@ Module responsibilities are deliberately narrow. `connection.py` knows iTerm2 bu
 
 ### Read tools
 
-| Tool | Returns |
-|---|---|
-| `list_sessions` | Tree of windows → tabs → sessions with IDs, titles, active flags |
-| `get_session_info` | Title, working directory, profile name, badge, dimensions (cols × rows), TTY path |
-| `get_screen_contents` | Visible buffer text + cursor position (row, column) |
-| `get_scrollback` | Last N lines of scrollback (default 200, capped at 5000) |
-| `get_recent_output` | Output since a cursor marker. Returns `{text, cursor}`. First call (no cursor) returns last screenful + a new cursor. |
-| `get_selection` | Currently selected text in the session |
-| `get_variable` | Read a variable by fully-qualified name (e.g. `session.username`, `tab.title`, `user.foo`) |
-| `list_profiles` | Available iTerm2 profiles by name and GUID |
+| Tool                  | Returns                                                                                                               |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `list_sessions`       | Tree of windows → tabs → sessions with IDs, titles, active flags                                                      |
+| `get_session_info`    | Title, working directory, profile name, badge, dimensions (cols × rows), TTY path                                     |
+| `get_screen_contents` | Visible buffer text + cursor position (row, column)                                                                   |
+| `get_scrollback`      | Last N lines of scrollback (default 200, capped at 5000)                                                              |
+| `get_recent_output`   | Output since a cursor marker. Returns `{text, cursor}`. First call (no cursor) returns last screenful + a new cursor. |
+| `get_selection`       | Currently selected text in the session                                                                                |
+| `get_variable`        | Read a variable by fully-qualified name (e.g. `session.username`, `tab.title`, `user.foo`)                            |
+| `list_profiles`       | Available iTerm2 profiles by name and GUID                                                                            |
 
 `get_recent_output`'s cursor is an opaque string. Internally it encodes `(session_id, scrollback_offset)`. The agent treats it as a black box; it passes back whatever the server handed out. If the cursor has aged out of scrollback (offset older than the buffer holds), the server returns all currently-available output since the oldest reachable point and includes a `cursor_expired: true` flag in the response so the agent knows it may have missed lines.
 
 ### Write tools (non-destructive)
 
-| Tool | Effect |
-|---|---|
-| `set_badge` | Set session badge text (the floating overlay) |
-| `set_title` | Override session title |
-| `set_tab_color` | Set tab tint as RGB (0–255 each) |
-| `set_user_variable` | Set a `user.foo` session variable (these are sandboxed to user-defined names by iTerm2) |
+| Tool                | Effect                                                                                                                                    |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `set_badge`         | Set session badge text (the floating overlay)                                                                                             |
+| `set_title`         | Override session title                                                                                                                    |
+| `set_tab_color`     | Set tab tint as RGB (0–255 each)                                                                                                          |
+| `set_user_variable` | Set a `user.foo` session variable (these are sandboxed to user-defined names by iTerm2)                                                   |
 | `post_notification` | Post a macOS notification via iTerm2 — useful for "long task done" signaling. Edge case: user-visible, but does not alter terminal state. |
 
 ### Explicitly excluded
@@ -132,17 +132,17 @@ iTerm2's Python API requires authentication. Two mechanisms exist:
 1. Auto-launch scripts registered in iTerm2's Scripts menu — not viable for an MCP subprocess.
 2. One-time cookie via AppleScript — this is what we use.
 
-On startup, the server shells out to `osascript -e 'tell application "iTerm2" to request cookie'`. iTerm2 prompts the user to authorize *this script* on first request; subsequent requests are silent (authorization is remembered per-script-name). The returned cookie is set as `ITERM2_COOKIE` in the server's env before `iterm2.Connection.async_create()` is called.
+On startup, the server shells out to `osascript -e 'tell application "iTerm2" to request cookie'`. iTerm2 prompts the user to authorize _this script_ on first request; subsequent requests are silent (authorization is remembered per-script-name). The returned cookie is set as `ITERM2_COOKIE` in the server's env before `iterm2.Connection.async_create()` is called.
 
 ### Failure modes
 
-| Condition | Behavior |
-|---|---|
-| iTerm2 not running at startup | Exit with `iTerm2 is not running. Start iTerm2 and try again.` |
-| User denies authorization | Exit with `iTerm2 denied API authorization. Re-enable in iTerm2 → Preferences → General → Magic.` |
-| Connection drops mid-session | Background reconnect with backoff 1s → 2s → 4s → ... → 30s cap. Tool calls during outage return `iTerm2 unavailable, reconnecting` error. |
-| `$ITERM_SESSION_ID` unset and no `session_id` argument | Return `no current session — pass session_id or run the MCP server from inside an iTerm2 session` error. |
-| `session_id` does not match any current session | Return `session_id X not found` error. |
+| Condition                                              | Behavior                                                                                                                                  |
+| ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| iTerm2 not running at startup                          | Exit with `iTerm2 is not running. Start iTerm2 and try again.`                                                                            |
+| User denies authorization                              | Exit with `iTerm2 denied API authorization. Re-enable in iTerm2 → Preferences → General → Magic.`                                         |
+| Connection drops mid-session                           | Background reconnect with backoff 1s → 2s → 4s → ... → 30s cap. Tool calls during outage return `iTerm2 unavailable, reconnecting` error. |
+| `$ITERM_SESSION_ID` unset and no `session_id` argument | Return `no current session — pass session_id or run the MCP server from inside an iTerm2 session` error.                                  |
+| `session_id` does not match any current session        | Return `session_id X not found` error.                                                                                                    |
 
 ### Permission model
 
