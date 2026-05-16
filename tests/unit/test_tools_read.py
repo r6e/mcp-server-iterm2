@@ -5,6 +5,7 @@ import pytest
 from mcp_server_iterm2.errors import Disconnected
 from mcp_server_iterm2.tools.read import (
     get_screen_contents_impl,
+    get_scrollback_impl,
     get_selection_impl,
     get_session_info_impl,
     list_sessions_impl,
@@ -122,3 +123,75 @@ async def test_get_selection_empty_when_no_subselections(simple_app):
     result = await get_selection_impl(client, session_id_arg="sess-1", env_session_id=None)
     assert result == {"text": ""}
     session.async_get_selection_text.assert_not_awaited()
+
+
+def _line_info(overflow: int, total: int):
+    """Build a fake SessionLineInfo. total = scrollback_buffer_height + mutable_area_height."""
+    info = MagicMock()
+    info.overflow = overflow
+    info.scrollback_buffer_height = max(total - 20, 0)
+    info.mutable_area_height = min(total, 20)
+    return info
+
+
+async def test_get_scrollback_default_returns_last_200_lines_when_available(simple_app):
+    client = MagicMock()
+    client.require_app.return_value = simple_app
+    session = simple_app.get_session_by_id("sess-1")
+    session.async_get_line_info = AsyncMock(return_value=_line_info(overflow=0, total=1000))
+    session.async_get_contents = AsyncMock(
+        return_value=[MagicMock(string=f"line{i}") for i in range(200)]
+    )
+
+    result = await get_scrollback_impl(
+        client, session_id_arg="sess-1", env_session_id=None, n_lines=200
+    )
+    # Most recent 200 lines, in order.
+    assert result["text"].startswith("line0\nline1")
+    assert result["text"].endswith("line199")
+    # range starts at (overflow + total - 200) = 800
+    session.async_get_contents.assert_awaited_once_with(800, 200)
+
+
+async def test_get_scrollback_capped_at_5000(simple_app):
+    client = MagicMock()
+    client.require_app.return_value = simple_app
+    session = simple_app.get_session_by_id("sess-1")
+    session.async_get_line_info = AsyncMock(return_value=_line_info(overflow=0, total=100000))
+    session.async_get_contents = AsyncMock(
+        return_value=[MagicMock(string="x") for _ in range(5000)]
+    )
+
+    await get_scrollback_impl(
+        client, session_id_arg="sess-1", env_session_id=None, n_lines=999999
+    )
+    session.async_get_contents.assert_awaited_once_with(95000, 5000)
+
+
+async def test_get_scrollback_when_fewer_lines_than_requested(simple_app):
+    client = MagicMock()
+    client.require_app.return_value = simple_app
+    session = simple_app.get_session_by_id("sess-1")
+    session.async_get_line_info = AsyncMock(return_value=_line_info(overflow=0, total=10))
+    session.async_get_contents = AsyncMock(
+        return_value=[MagicMock(string=f"L{i}") for i in range(10)]
+    )
+
+    await get_scrollback_impl(
+        client, session_id_arg="sess-1", env_session_id=None, n_lines=200
+    )
+    session.async_get_contents.assert_awaited_once_with(0, 10)
+
+
+async def test_get_scrollback_zero_lines_returns_empty_without_rpc(simple_app):
+    client = MagicMock()
+    client.require_app.return_value = simple_app
+    session = simple_app.get_session_by_id("sess-1")
+    session.async_get_line_info = AsyncMock(return_value=_line_info(overflow=0, total=0))
+    session.async_get_contents = AsyncMock()  # should NOT be called
+
+    result = await get_scrollback_impl(
+        client, session_id_arg="sess-1", env_session_id=None, n_lines=200
+    )
+    assert result == {"text": ""}
+    session.async_get_contents.assert_not_awaited()

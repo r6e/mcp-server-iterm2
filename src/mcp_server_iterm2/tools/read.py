@@ -12,6 +12,8 @@ from typing import Any
 
 from mcp_server_iterm2.session import resolve_session
 
+SCROLLBACK_MAX = 5000
+
 
 def list_sessions_impl(client: Any) -> dict[str, Any]:
     """Return the windows → tabs → sessions hierarchy."""
@@ -98,3 +100,24 @@ async def get_selection_impl(
         return {"text": ""}
     text = await session.async_get_selection_text(selection)
     return {"text": text}
+
+
+async def get_scrollback_impl(
+    client: Any,
+    *,
+    session_id_arg: str | None,
+    env_session_id: str | None,
+    n_lines: int = 200,
+) -> dict[str, Any]:
+    """Return the last N lines of scrollback (capped at SCROLLBACK_MAX)."""
+    app = client.require_app()
+    session = resolve_session(app, session_id_arg, env_session_id)
+    info = await session.async_get_line_info()
+    overflow = info.overflow
+    total = info.scrollback_buffer_height + info.mutable_area_height
+    take = min(max(n_lines, 0), SCROLLBACK_MAX, total)
+    if take == 0:
+        return {"text": ""}
+    start = overflow + total - take
+    line_contents = await session.async_get_contents(start, take)
+    return {"text": "\n".join(lc.string for lc in line_contents)}

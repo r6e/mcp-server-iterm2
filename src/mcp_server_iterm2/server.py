@@ -72,6 +72,21 @@ def create_server(*, client: Any) -> FastMCP:
         except MCPIterm2Error as e:
             raise RuntimeError(to_error_text(e)) from e
 
+    @mcp.tool()
+    async def get_scrollback(
+        session_id: str | None = None, n_lines: int = 200
+    ) -> dict[str, Any]:
+        """Return the last N lines of scrollback (default 200, max 5000)."""
+        try:
+            return await read_tools.get_scrollback_impl(
+                client,
+                session_id_arg=session_id,
+                env_session_id=_env_session_id(),
+                n_lines=n_lines,
+            )
+        except MCPIterm2Error as e:
+            raise RuntimeError(to_error_text(e)) from e
+
     return mcp
 
 
