@@ -71,3 +71,17 @@ async def get_session_info_impl(
         "tty": tty,
         "dimensions": {"cols": grid.width, "rows": grid.height},
     }
+
+
+async def get_screen_contents_impl(
+    client: Any, *, session_id_arg: str | None, env_session_id: str | None
+) -> dict[str, Any]:
+    """Return the visible buffer text and cursor position for a session."""
+    app = client.require_app()
+    session = resolve_session(app, session_id_arg, env_session_id)
+    contents = await session.async_get_screen_contents()
+    lines = [contents.line(i).string for i in range(contents.number_of_lines)]
+    return {
+        "text": "\n".join(lines),
+        "cursor": {"row": contents.cursor_coord.y, "col": contents.cursor_coord.x},
+    }
