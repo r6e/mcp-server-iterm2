@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from mcp_server_iterm2.session import resolve_session
+
 
 def list_sessions_impl(client: Any) -> dict[str, Any]:
     """Return the windows → tabs → sessions hierarchy."""
@@ -44,3 +46,22 @@ def list_sessions_impl(client: Any) -> dict[str, Any]:
             )
         out_windows.append({"window_id": window.window_id, "tabs": out_tabs})
     return {"windows": out_windows}
+
+
+async def get_session_info_impl(
+    client: Any, *, session_id_arg: str | None, env_session_id: str | None
+) -> dict[str, Any]:
+    """Return session metadata: title, working dir, profile, badge, dimensions, TTY."""
+    app = client.require_app()
+    session = resolve_session(app, session_id_arg, env_session_id)
+    profile = await session.async_get_profile()
+    grid = session.grid_size()
+    return {
+        "session_id": session.session_id,
+        "name": session.name,
+        "working_directory": await session.async_get_variable("session.path"),
+        "profile_name": profile.name,
+        "badge": await session.async_get_variable("user.badge"),
+        "tty": await session.async_get_variable("session.tty"),
+        "dimensions": {"cols": grid.width, "rows": grid.height},
+    }
