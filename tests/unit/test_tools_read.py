@@ -244,7 +244,7 @@ async def test_get_recent_output_no_cursor_bounded_to_screenful_with_large_buffe
         client, session_id_arg="sess-1", env_session_id=None, cursor=None
     )
 
-    # Should have fetched exactly the mutable area (lines 980–999 = 20 lines).
+    # Should have fetched exactly the mutable area (lines 980-999 = 20 lines).
     session.async_get_contents.assert_awaited_once_with(980, 20)
     assert result["cursor_expired"] is False
     sid, line = decode_cursor(result["cursor"])
