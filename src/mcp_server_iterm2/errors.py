@@ -29,6 +29,10 @@ class SessionNotFound(MCPIterm2Error):
         self.session_id = session_id
 
 
+class CursorInvalid(MCPIterm2Error, ValueError):
+    """The supplied cursor string could not be parsed or belongs to a different session."""
+
+
 def to_error_text(err: BaseException) -> str:
     """Render an exception as actionable text for an MCP tool error response."""
     match err:
@@ -48,5 +52,7 @@ def to_error_text(err: BaseException) -> str:
             )
         case SessionNotFound() as e:
             return f"session_id {e.session_id} not found."
+        case CursorInvalid():
+            return "Invalid cursor. Pass null to start from scratch."
         case _:
             return f"Internal error: {err}"

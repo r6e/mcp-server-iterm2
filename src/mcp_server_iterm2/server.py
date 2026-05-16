@@ -91,7 +91,7 @@ def create_server(*, client: Any) -> FastMCP:
     async def get_recent_output(
         session_id: str | None = None, cursor: str | None = None
     ) -> dict[str, Any]:
-        """Return output since the given cursor (or last screenful if no cursor)."""
+        """Return output since the given cursor (or the full available buffer if no cursor)."""
         try:
             return await read_tools.get_recent_output_impl(
                 client,

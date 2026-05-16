@@ -6,9 +6,7 @@ import base64
 import json
 from dataclasses import dataclass
 
-
-class CursorInvalid(ValueError):
-    """The supplied cursor string could not be parsed or belongs to a different session."""
+from mcp_server_iterm2.errors import CursorInvalid as CursorInvalid  # re-export
 
 
 def encode_cursor(*, session_id: str, line_number: int) -> str:
