@@ -118,6 +118,14 @@ def create_server(*, client: Any) -> FastMCP:
         except MCPIterm2Error as e:
             raise RuntimeError(to_error_text(e)) from e
 
+    @mcp.tool()
+    async def list_profiles() -> dict[str, Any]:
+        """List available iTerm2 profiles by name and GUID."""
+        try:
+            return await read_tools.list_profiles_impl(client)
+        except MCPIterm2Error as e:
+            raise RuntimeError(to_error_text(e)) from e
+
     return mcp
 
 

@@ -10,6 +10,8 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
+import iterm2  # type: ignore[import-untyped]
+
 from mcp_server_iterm2.errors import ScopeUnavailable
 from mcp_server_iterm2.output_cursor import (
     decode_cursor,
@@ -196,3 +198,10 @@ async def get_variable_impl(
         # to the session and will fail with whatever iTerm2 returns.
         value = await session.async_get_variable(name)
     return {"name": name, "value": value}
+
+
+async def list_profiles_impl(client: Any) -> dict[str, Any]:
+    """Return all iTerm2 profiles as a list of name/GUID pairs."""
+    conn = client.require_connection()
+    profiles = await iterm2.PartialProfile.async_query(conn)
+    return {"profiles": [{"name": p.name, "guid": p.guid} for p in profiles]}
