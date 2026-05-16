@@ -39,3 +39,12 @@ async def test_set_title_calls_async_set_name(simple_app):
     )
     assert result == {"ok": True, "title": "My Session"}
     session.async_set_name.assert_awaited_once_with("My Session")
+
+
+async def test_set_title_propagates_disconnected():
+    client = MagicMock()
+    client.require_app.side_effect = Disconnected()
+    with pytest.raises(Disconnected):
+        await set_title_impl(
+            client, session_id_arg="sess-1", env_session_id=None, title="x"
+        )
