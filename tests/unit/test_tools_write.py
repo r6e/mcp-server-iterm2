@@ -3,7 +3,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from mcp_server_iterm2.errors import Disconnected
-from mcp_server_iterm2.tools.write import set_badge_impl, set_tab_color_impl, set_title_impl
+from mcp_server_iterm2.tools.write import (
+    set_badge_impl,
+    set_tab_color_impl,
+    set_title_impl,
+    set_user_variable_impl,
+)
 
 
 async def test_set_badge_writes_user_badge_variable(simple_app):
@@ -87,4 +92,38 @@ async def test_set_tab_color_propagates_disconnected():
     with pytest.raises(Disconnected):
         await set_tab_color_impl(
             client, session_id_arg="sess-1", env_session_id=None, r=0, g=0, b=0
+        )
+
+
+async def test_set_user_variable_writes(simple_app):
+    client = MagicMock()
+    client.require_app.return_value = simple_app
+    session = simple_app.get_session_by_id("sess-1")
+    session.async_set_variable = AsyncMock()
+
+    result = await set_user_variable_impl(
+        client, session_id_arg="sess-1", env_session_id=None,
+        name="user.task", value="refactor",
+    )
+    assert result == {"ok": True, "name": "user.task", "value": "refactor"}
+    session.async_set_variable.assert_awaited_once_with("user.task", "refactor")
+
+
+async def test_set_user_variable_rejects_non_user_prefix(simple_app):
+    client = MagicMock()
+    client.require_app.return_value = simple_app
+    with pytest.raises(ValueError):
+        await set_user_variable_impl(
+            client, session_id_arg="sess-1", env_session_id=None,
+            name="session.path", value="oops",
+        )
+
+
+async def test_set_user_variable_propagates_disconnected():
+    client = MagicMock()
+    client.require_app.side_effect = Disconnected()
+    with pytest.raises(Disconnected):
+        await set_user_variable_impl(
+            client, session_id_arg="sess-1", env_session_id=None,
+            name="user.x", value="y",
         )

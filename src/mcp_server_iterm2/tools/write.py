@@ -54,3 +54,21 @@ async def set_tab_color_impl(
     profile.set_use_tab_color(True)
     await session.async_set_profile_properties(profile)
     return {"ok": True, "rgb": [r, g, b]}
+
+
+async def set_user_variable_impl(
+    client: Any,
+    *,
+    session_id_arg: str | None,
+    env_session_id: str | None,
+    name: str,
+    value: str,
+) -> dict[str, Any]:
+    if not name.startswith("user."):
+        raise ValueError(
+            f"variable name must start with 'user.' (got {name!r})"
+        )
+    app = client.require_app()
+    session = resolve_session(app, session_id_arg, env_session_id)
+    await session.async_set_variable(name, value)
+    return {"ok": True, "name": name, "value": value}

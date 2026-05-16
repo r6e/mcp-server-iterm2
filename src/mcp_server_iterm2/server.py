@@ -170,6 +170,22 @@ def create_server(*, client: Any) -> FastMCP:
         except MCPIterm2Error as e:
             raise RuntimeError(to_error_text(e)) from e
 
+    @mcp.tool()
+    async def set_user_variable(
+        name: str, value: str, session_id: str | None = None
+    ) -> dict[str, Any]:
+        """Set a user-scoped session variable. Name must start with 'user.'."""
+        try:
+            return await write_tools.set_user_variable_impl(
+                client,
+                session_id_arg=session_id,
+                env_session_id=_env_session_id(),
+                name=name,
+                value=value,
+            )
+        except MCPIterm2Error as e:
+            raise RuntimeError(to_error_text(e)) from e
+
     return mcp
 
 
