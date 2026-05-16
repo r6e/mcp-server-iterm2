@@ -18,3 +18,16 @@ async def set_badge_impl(
     session = resolve_session(app, session_id_arg, env_session_id)
     await session.async_set_variable("user.badge", text)
     return {"ok": True, "badge": text}
+
+
+async def set_title_impl(
+    client: Any,
+    *,
+    session_id_arg: str | None,
+    env_session_id: str | None,
+    title: str,
+) -> dict[str, Any]:
+    app = client.require_app()
+    session = resolve_session(app, session_id_arg, env_session_id)
+    await session.async_set_name(title)
+    return {"ok": True, "title": title}

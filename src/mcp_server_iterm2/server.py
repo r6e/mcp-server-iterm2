@@ -140,6 +140,19 @@ def create_server(*, client: Any) -> FastMCP:
         except MCPIterm2Error as e:
             raise RuntimeError(to_error_text(e)) from e
 
+    @mcp.tool()
+    async def set_title(title: str, session_id: str | None = None) -> dict[str, Any]:
+        """Override the session title. Rendering depends on profile title settings."""
+        try:
+            return await write_tools.set_title_impl(
+                client,
+                session_id_arg=session_id,
+                env_session_id=_env_session_id(),
+                title=title,
+            )
+        except MCPIterm2Error as e:
+            raise RuntimeError(to_error_text(e)) from e
+
     return mcp
 
 
