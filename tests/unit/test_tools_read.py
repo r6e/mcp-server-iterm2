@@ -2,7 +2,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from mcp_server_iterm2.errors import Disconnected
+from mcp_server_iterm2.errors import Disconnected, ScopeUnavailable
 from mcp_server_iterm2.output_cursor import decode_cursor, encode_cursor
 from mcp_server_iterm2.server import create_server
 from mcp_server_iterm2.tools.read import (
@@ -355,3 +355,38 @@ async def test_get_variable_window_scope_routes_to_window(simple_app):
     )
     assert result == {"name": "window.foo", "value": "my-window-name"}
     window.async_get_variable.assert_awaited_once_with("window.foo")
+
+
+async def test_get_variable_tab_scope_raises_when_session_has_no_tab(simple_app):
+    client = MagicMock()
+    client.require_app.return_value = simple_app
+    session = simple_app.get_session_by_id("sess-1")
+    session.tab = None  # buried session
+    with pytest.raises(ScopeUnavailable) as exc:
+        await get_variable_impl(
+            client, session_id_arg="sess-1", env_session_id=None, name="tab.foo"
+        )
+    assert exc.value.scope == "tab"
+
+
+async def test_get_variable_window_scope_raises_when_session_has_no_tab(simple_app):
+    client = MagicMock()
+    client.require_app.return_value = simple_app
+    session = simple_app.get_session_by_id("sess-1")
+    session.tab = None
+    with pytest.raises(ScopeUnavailable) as exc:
+        await get_variable_impl(
+            client, session_id_arg="sess-1", env_session_id=None, name="window.foo"
+        )
+    assert exc.value.scope == "tab"
+
+
+async def test_get_variable_window_scope_raises_when_no_window_for_tab(simple_app):
+    client = MagicMock()
+    client.require_app.return_value = simple_app
+    simple_app.get_window_for_tab = MagicMock(return_value=None)
+    with pytest.raises(ScopeUnavailable) as exc:
+        await get_variable_impl(
+            client, session_id_arg="sess-1", env_session_id=None, name="window.foo"
+        )
+    assert exc.value.scope == "window"

@@ -33,6 +33,14 @@ class CursorInvalid(MCPIterm2Error, ValueError):
     """The supplied cursor string could not be parsed or belongs to a different session."""
 
 
+class ScopeUnavailable(MCPIterm2Error):
+    """Tab or window scope was requested but the containing tab/window is unavailable."""
+
+    def __init__(self, scope: str) -> None:
+        super().__init__(scope)
+        self.scope = scope
+
+
 def to_error_text(err: BaseException) -> str:
     """Render an exception as actionable text for an MCP tool error response."""
     match err:
@@ -54,5 +62,7 @@ def to_error_text(err: BaseException) -> str:
             return f"session_id {e.session_id} not found."
         case CursorInvalid():
             return "Invalid cursor. Pass null to start from scratch."
+        case ScopeUnavailable() as e:
+            return f"Cannot read variable: containing {e.scope} is unavailable for this session."
         case _:
             return f"Internal error: {err}"

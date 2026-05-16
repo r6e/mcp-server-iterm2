@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
+from mcp_server_iterm2.errors import ScopeUnavailable
 from mcp_server_iterm2.output_cursor import (
     decode_cursor,
     diff_since,
@@ -178,11 +179,20 @@ async def get_variable_impl(
     app = client.require_app()
     session = resolve_session(app, session_id_arg, env_session_id)
     if name.startswith("tab."):
-        value = await session.tab.async_get_variable(name)
+        tab = session.tab
+        if tab is None:
+            raise ScopeUnavailable("tab")
+        value = await tab.async_get_variable(name)
     elif name.startswith("window."):
-        window = app.get_window_for_tab(session.tab.tab_id)
+        tab = session.tab
+        if tab is None:
+            raise ScopeUnavailable("tab")
+        window = app.get_window_for_tab(tab.tab_id)
+        if window is None:
+            raise ScopeUnavailable("window")
         value = await window.async_get_variable(name)
     else:
-        # session.* and user.* both live on the session
+        # session.* and user.* both live on the session; any unknown prefix is delegated
+        # to the session and will fail with whatever iTerm2 returns.
         value = await session.async_get_variable(name)
     return {"name": name, "value": value}
