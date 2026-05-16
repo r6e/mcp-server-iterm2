@@ -11,6 +11,7 @@ from mcp_server_iterm2.tools.read import (
     get_scrollback_impl,
     get_selection_impl,
     get_session_info_impl,
+    get_variable_impl,
     list_sessions_impl,
 )
 
@@ -300,3 +301,57 @@ async def test_get_recent_output_invalid_cursor_translates_to_runtime_error(simp
         await tool.fn(session_id="sess-1", cursor="not-a-valid-cursor")
 
     assert "Invalid cursor" in str(exc_info.value)
+
+
+async def test_get_variable_session_scope(simple_app):
+    client = MagicMock()
+    client.require_app.return_value = simple_app
+    session = simple_app.get_session_by_id("sess-1")
+    session.async_get_variable = AsyncMock(return_value="zsh")
+
+    result = await get_variable_impl(
+        client, session_id_arg="sess-1", env_session_id=None, name="session.username"
+    )
+    assert result == {"name": "session.username", "value": "zsh"}
+    session.async_get_variable.assert_awaited_once_with("session.username")
+
+
+async def test_get_variable_user_scope_reads_from_session(simple_app):
+    client = MagicMock()
+    client.require_app.return_value = simple_app
+    session = simple_app.get_session_by_id("sess-1")
+    session.async_get_variable = AsyncMock(return_value="WORK")
+
+    result = await get_variable_impl(
+        client, session_id_arg="sess-1", env_session_id=None, name="user.badge"
+    )
+    assert result == {"name": "user.badge", "value": "WORK"}
+    session.async_get_variable.assert_awaited_once_with("user.badge")
+
+
+async def test_get_variable_tab_scope_routes_to_tab(simple_app):
+    client = MagicMock()
+    client.require_app.return_value = simple_app
+    session = simple_app.get_session_by_id("sess-1")
+    # session.tab is already wired by the fixture
+    session.tab.async_get_variable = AsyncMock(return_value="42")
+
+    result = await get_variable_impl(
+        client, session_id_arg="sess-1", env_session_id=None, name="tab.foo"
+    )
+    assert result == {"name": "tab.foo", "value": "42"}
+    session.tab.async_get_variable.assert_awaited_once_with("tab.foo")
+
+
+async def test_get_variable_window_scope_routes_to_window(simple_app):
+    client = MagicMock()
+    client.require_app.return_value = simple_app
+    session = simple_app.get_session_by_id("sess-1")
+    window = simple_app.get_window_for_tab(session.tab.tab_id)
+    window.async_get_variable = AsyncMock(return_value="my-window-name")
+
+    result = await get_variable_impl(
+        client, session_id_arg="sess-1", env_session_id=None, name="window.foo"
+    )
+    assert result == {"name": "window.foo", "value": "my-window-name"}
+    window.async_get_variable.assert_awaited_once_with("window.foo")

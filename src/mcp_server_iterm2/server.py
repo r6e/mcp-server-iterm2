@@ -102,6 +102,22 @@ def create_server(*, client: Any) -> FastMCP:
         except MCPIterm2Error as e:
             raise RuntimeError(to_error_text(e)) from e
 
+    @mcp.tool()
+    async def get_variable(name: str, session_id: str | None = None) -> dict[str, Any]:
+        """Read an iTerm2 variable by fully-qualified name.
+
+        Examples: session.path, user.badge, tab.title, window.name.
+        """
+        try:
+            return await read_tools.get_variable_impl(
+                client,
+                session_id_arg=session_id,
+                env_session_id=_env_session_id(),
+                name=name,
+            )
+        except MCPIterm2Error as e:
+            raise RuntimeError(to_error_text(e)) from e
+
     return mcp
 
 
