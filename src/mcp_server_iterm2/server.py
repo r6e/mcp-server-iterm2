@@ -153,6 +153,23 @@ def create_server(*, client: Any) -> FastMCP:
         except MCPIterm2Error as e:
             raise RuntimeError(to_error_text(e)) from e
 
+    @mcp.tool()
+    async def set_tab_color(
+        r: int, g: int, b: int, session_id: str | None = None
+    ) -> dict[str, Any]:
+        """Set the tab tint as RGB (each component 0-255)."""
+        try:
+            return await write_tools.set_tab_color_impl(
+                client,
+                session_id_arg=session_id,
+                env_session_id=_env_session_id(),
+                r=r,
+                g=g,
+                b=b,
+            )
+        except MCPIterm2Error as e:
+            raise RuntimeError(to_error_text(e)) from e
+
     return mcp
 
 
