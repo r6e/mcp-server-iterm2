@@ -94,7 +94,7 @@ async def post_notification_impl(*, title: str, body: str) -> dict[str, Any]:
 
     script = f'display notification "{_escape(body)}" with title "{_escape(title)}"'
     result = subprocess.run(
-        ["osascript", "-e", script],
+        ["/usr/bin/osascript", "-e", script],
         capture_output=True,
         text=True,
         check=False,

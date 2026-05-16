@@ -52,3 +52,11 @@ def test_other_failure_reraised_as_authdenied(mock_run):
     mock_run.return_value = _fake_completed(returncode=1, stderr="some other failure")
     with pytest.raises(AuthDenied):
         request_cookie()
+
+
+@patch("mcp_server_iterm2.cookie.subprocess.run")
+def test_uses_absolute_osascript_path(mock_run):
+    mock_run.return_value = _fake_completed(stdout="abc123\n")
+    request_cookie()
+    args = mock_run.call_args[0][0]
+    assert args[0] == "/usr/bin/osascript", "must use absolute path, not PATH lookup"

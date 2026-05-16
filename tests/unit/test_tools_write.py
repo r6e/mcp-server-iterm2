@@ -145,7 +145,7 @@ async def test_post_notification_invokes_osascript(mock_run):
     assert result == {"ok": True}
     args, _ = mock_run.call_args
     cmd = args[0]
-    assert cmd[0] == "osascript"
+    assert cmd[0] == "/usr/bin/osascript"
     script = cmd[2]
     assert "The task is complete." in script
     assert "Done" in script
@@ -184,3 +184,13 @@ async def test_post_notification_escapes_newlines_in_body(mock_run):
     assert "\n" not in script
     # The escape sequence \n (two characters: backslash + n) SHOULD be present
     assert r"line1\nline2" in script
+
+
+@patch("mcp_server_iterm2.tools.write.subprocess.run")
+async def test_post_notification_uses_absolute_osascript_path(mock_run):
+    mock_run.return_value = subprocess.CompletedProcess(
+        args=["/usr/bin/osascript"], returncode=0, stdout="", stderr=""
+    )
+    await post_notification_impl(title="t", body="b")
+    args = mock_run.call_args[0][0]
+    assert args[0] == "/usr/bin/osascript"
