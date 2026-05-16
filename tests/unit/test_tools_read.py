@@ -4,6 +4,7 @@ import pytest
 
 from mcp_server_iterm2.errors import Disconnected
 from mcp_server_iterm2.output_cursor import decode_cursor, encode_cursor
+from mcp_server_iterm2.server import create_server
 from mcp_server_iterm2.tools.read import (
     get_recent_output_impl,
     get_screen_contents_impl,
@@ -283,3 +284,19 @@ async def test_get_recent_output_cursor_expired(simple_app):
     )
     assert result["cursor_expired"] is True
     session.async_get_contents.assert_awaited_once_with(500, 200)
+
+
+async def test_get_recent_output_invalid_cursor_translates_to_runtime_error(simple_app):
+    client = MagicMock()
+    client.require_app.return_value = simple_app
+    session = simple_app.get_session_by_id("sess-1")
+    session.async_get_line_info = AsyncMock(return_value=_line_info(overflow=0, total=5))
+
+    mcp = create_server(client=client)
+    tool = mcp._tool_manager.get_tool("get_recent_output")
+    assert tool is not None
+
+    with pytest.raises(RuntimeError) as exc_info:
+        await tool.fn(session_id="sess-1", cursor="not-a-valid-cursor")
+
+    assert "Invalid cursor" in str(exc_info.value)
