@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from mcp_server_iterm2.errors import Disconnected
+from mcp_server_iterm2.errors import Disconnected, SubprocessTimeout
 from mcp_server_iterm2.tools.write import (
     post_notification_impl,
     set_badge_impl,
@@ -194,3 +194,20 @@ async def test_post_notification_uses_absolute_osascript_path(mock_run):
     await post_notification_impl(title="t", body="b")
     args = mock_run.call_args[0][0]
     assert args[0] == "/usr/bin/osascript"
+
+
+@patch("mcp_server_iterm2.tools.write.subprocess.run")
+async def test_post_notification_raises_subprocess_timeout(mock_run):
+    mock_run.side_effect = subprocess.TimeoutExpired(cmd="osascript", timeout=5.0)
+    with pytest.raises(SubprocessTimeout) as exc:
+        await post_notification_impl(title="t", body="b")
+    assert exc.value.seconds == 5.0
+
+
+@patch("mcp_server_iterm2.tools.write.subprocess.run")
+async def test_post_notification_passes_timeout(mock_run):
+    mock_run.return_value = subprocess.CompletedProcess(
+        args=["/usr/bin/osascript"], returncode=0, stdout="", stderr=""
+    )
+    await post_notification_impl(title="t", body="b")
+    assert mock_run.call_args.kwargs.get("timeout") == 5.0

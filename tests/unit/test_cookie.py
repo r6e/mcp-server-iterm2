@@ -4,7 +4,7 @@ from unittest.mock import patch
 import pytest
 
 from mcp_server_iterm2.cookie import request_cookie
-from mcp_server_iterm2.errors import APINotEnabled, AuthDenied, ITermNotRunning
+from mcp_server_iterm2.errors import APINotEnabled, AuthDenied, ITermNotRunning, SubprocessTimeout
 
 
 def _fake_completed(stdout: str = "", stderr: str = "", returncode: int = 0):
@@ -60,3 +60,18 @@ def test_uses_absolute_osascript_path(mock_run):
     request_cookie()
     args = mock_run.call_args[0][0]
     assert args[0] == "/usr/bin/osascript", "must use absolute path, not PATH lookup"
+
+
+@patch("mcp_server_iterm2.cookie.subprocess.run")
+def test_request_cookie_raises_subprocess_timeout(mock_run):
+    mock_run.side_effect = subprocess.TimeoutExpired(cmd="osascript", timeout=30.0)
+    with pytest.raises(SubprocessTimeout) as exc:
+        request_cookie()
+    assert exc.value.seconds == 30.0
+
+
+@patch("mcp_server_iterm2.cookie.subprocess.run")
+def test_request_cookie_passes_timeout(mock_run):
+    mock_run.return_value = _fake_completed(stdout="abc\n")
+    request_cookie()
+    assert mock_run.call_args.kwargs.get("timeout") == 30.0
