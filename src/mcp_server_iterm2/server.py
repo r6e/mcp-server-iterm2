@@ -15,6 +15,7 @@ from mcp_server_iterm2.errors import (
     to_error_text,
 )
 from mcp_server_iterm2.tools import read as read_tools
+from mcp_server_iterm2.tools import write as write_tools
 
 _STARTUP_TIMEOUT_S = 5.0
 _STARTUP_POLL_INTERVAL_S = 0.1
@@ -123,6 +124,19 @@ def create_server(*, client: Any) -> FastMCP:
         """List available iTerm2 profiles by name and GUID."""
         try:
             return await read_tools.list_profiles_impl(client)
+        except MCPIterm2Error as e:
+            raise RuntimeError(to_error_text(e)) from e
+
+    @mcp.tool()
+    async def set_badge(text: str, session_id: str | None = None) -> dict[str, Any]:
+        """Set the session badge text. Requires \\(user.badge) in the profile's badge format."""
+        try:
+            return await write_tools.set_badge_impl(
+                client,
+                session_id_arg=session_id,
+                env_session_id=_env_session_id(),
+                text=text,
+            )
         except MCPIterm2Error as e:
             raise RuntimeError(to_error_text(e)) from e
 
