@@ -9,12 +9,10 @@ def make_session(
     *,
     session_id: str,
     name: str = "session",
-    is_active: bool = False,
 ) -> MagicMock:
     s = MagicMock(name=f"session-{session_id}")
     s.session_id = session_id
     s.name = name
-    s.is_active_synthetic = is_active  # purely for fixture wiring
     return s
 
 
@@ -53,8 +51,6 @@ def make_app(
     app.terminal_windows = windows
     app.current_terminal_window = current_window or (windows[0] if windows else None)
 
-    sessions_by_id = {
-        s.session_id: s for w in windows for t in w.tabs for s in t.sessions
-    }
+    sessions_by_id = {s.session_id: s for w in windows for t in w.tabs for s in t.sessions}
     app.get_session_by_id = lambda sid: sessions_by_id.get(sid)
     return app
