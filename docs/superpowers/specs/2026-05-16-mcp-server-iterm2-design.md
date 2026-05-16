@@ -97,10 +97,10 @@ Module responsibilities are deliberately narrow. `connection.py` knows iTerm2 bu
 | `get_scrollback` | Last N lines of scrollback (default 200, capped at 5000) |
 | `get_recent_output` | Output since a cursor marker. Returns `{text, cursor}`. First call (no cursor) returns last screenful + a new cursor. |
 | `get_selection` | Currently selected text in the session |
-| `get_variable` | Read a named session/tab/window variable |
+| `get_variable` | Read a variable by fully-qualified name (e.g. `session.username`, `tab.title`, `user.foo`) |
 | `list_profiles` | Available iTerm2 profiles by name and GUID |
 
-`get_recent_output`'s cursor is an opaque string. Internally it encodes `(session_id, scrollback_offset)`. The agent treats it as a black box; it passes back whatever the server handed out.
+`get_recent_output`'s cursor is an opaque string. Internally it encodes `(session_id, scrollback_offset)`. The agent treats it as a black box; it passes back whatever the server handed out. If the cursor has aged out of scrollback (offset older than the buffer holds), the server returns all currently-available output since the oldest reachable point and includes a `cursor_expired: true` flag in the response so the agent knows it may have missed lines.
 
 ### Write tools (non-destructive)
 
@@ -227,6 +227,7 @@ Opt-in. CI skips by default; runs locally and optionally on a self-hosted macOS 
 - **Namespace collision.** `iterm2-mcp` on PyPI is taken by an unrelated full-control server. Using `mcp-server-iterm2` follows the MCP-org convention (e.g. `mcp-server-filesystem`) and avoids the collision.
 - **`post_notification` borderline case.** User-visible but state-neutral. Included with the option to remove if it causes annoyance in practice.
 - **Session ID stability.** iTerm2 session IDs are stable for a session's lifetime but vanish on close. Agents holding stale IDs get a clear error; no recovery logic needed.
+- **`set_title` profile override.** Whether a title override sticks depends on the profile's "Allow terminal apps to change title" and "Title Components" settings. The tool sets the override successfully in all cases; whether it is rendered is iTerm2-controlled. README should document this so users aren't surprised.
 
 ## What success looks like
 
