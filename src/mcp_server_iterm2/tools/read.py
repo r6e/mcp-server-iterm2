@@ -7,6 +7,7 @@ and error translation.
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 from mcp_server_iterm2.session import resolve_session
@@ -54,14 +55,19 @@ async def get_session_info_impl(
     """Return session metadata: title, working dir, profile, badge, dimensions, TTY."""
     app = client.require_app()
     session = resolve_session(app, session_id_arg, env_session_id)
-    profile = await session.async_get_profile()
-    grid = session.grid_size()
+    grid = session.grid_size
+    profile, working_directory, badge, tty = await asyncio.gather(
+        session.async_get_profile(),
+        session.async_get_variable("session.path"),
+        session.async_get_variable("user.badge"),
+        session.async_get_variable("session.tty"),
+    )
     return {
         "session_id": session.session_id,
         "name": session.name,
-        "working_directory": await session.async_get_variable("session.path"),
+        "working_directory": working_directory,
         "profile_name": profile.name,
-        "badge": await session.async_get_variable("user.badge"),
-        "tty": await session.async_get_variable("session.tty"),
+        "badge": badge,
+        "tty": tty,
         "dimensions": {"cols": grid.width, "rows": grid.height},
     }
