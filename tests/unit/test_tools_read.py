@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -12,6 +12,7 @@ from mcp_server_iterm2.tools.read import (
     get_selection_impl,
     get_session_info_impl,
     get_variable_impl,
+    list_profiles_impl,
     list_sessions_impl,
 )
 
@@ -390,3 +391,25 @@ async def test_get_variable_window_scope_raises_when_no_window_for_tab(simple_ap
             client, session_id_arg="sess-1", env_session_id=None, name="window.foo"
         )
     assert exc.value.scope == "window"
+
+
+@patch("mcp_server_iterm2.tools.read.iterm2")
+async def test_list_profiles_returns_name_and_guid(mock_iterm2):
+    p1 = MagicMock()
+    p1.name = "Default"
+    p1.guid = "guid-1"
+    p2 = MagicMock()
+    p2.name = "Dark"
+    p2.guid = "guid-2"
+    mock_iterm2.PartialProfile.async_query = AsyncMock(return_value=[p1, p2])
+
+    client = MagicMock()
+    client.require_connection = MagicMock(return_value="<conn>")
+    result = await list_profiles_impl(client)
+    assert result == {
+        "profiles": [
+            {"name": "Default", "guid": "guid-1"},
+            {"name": "Dark", "guid": "guid-2"},
+        ]
+    }
+    mock_iterm2.PartialProfile.async_query.assert_awaited_once_with("<conn>")
