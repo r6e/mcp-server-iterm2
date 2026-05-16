@@ -183,7 +183,7 @@ async def test_get_scrollback_when_fewer_lines_than_requested(simple_app):
     session.async_get_contents.assert_awaited_once_with(0, 10)
 
 
-async def test_get_scrollback_zero_lines_returns_empty_without_rpc(simple_app):
+async def test_get_scrollback_when_no_lines_available(simple_app):
     client = MagicMock()
     client.require_app.return_value = simple_app
     session = simple_app.get_session_by_id("sess-1")
@@ -195,3 +195,19 @@ async def test_get_scrollback_zero_lines_returns_empty_without_rpc(simple_app):
     )
     assert result == {"text": ""}
     session.async_get_contents.assert_not_awaited()
+
+
+async def test_get_scrollback_overflow_offset_applied(simple_app):
+    client = MagicMock()
+    client.require_app.return_value = simple_app
+    session = simple_app.get_session_by_id("sess-1")
+    session.async_get_line_info = AsyncMock(return_value=_line_info(overflow=100, total=1000))
+    session.async_get_contents = AsyncMock(
+        return_value=[MagicMock(string="x") for _ in range(200)]
+    )
+
+    await get_scrollback_impl(
+        client, session_id_arg="sess-1", env_session_id=None, n_lines=200
+    )
+    # start = overflow + total - take = 100 + 1000 - 200 = 900
+    session.async_get_contents.assert_awaited_once_with(900, 200)
