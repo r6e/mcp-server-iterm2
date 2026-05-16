@@ -143,14 +143,25 @@ async def get_recent_output_impl(
     session = resolve_session(app, session_id_arg, env_session_id)
     sid = session.session_id
 
+    info = await session.async_get_line_info()
+    total = info.scrollback_buffer_height + info.mutable_area_height
+
     last_seen: int | None
     if cursor is None:
-        last_seen = None
+        # First call: bound fetch to the visible screen (mutable area) so we
+        # don't dump the entire scrollback buffer on the caller.
+        # When there is no scrollback yet (fresh session), the mutable area
+        # starts at overflow itself, so there is nothing above to skip —
+        # leave last_seen=None to fetch all available lines without marking
+        # the cursor expired.
+        if info.scrollback_buffer_height > 0:
+            visible_start = info.overflow + info.scrollback_buffer_height
+            last_seen = visible_start - 1  # pretend caller already saw everything above
+        else:
+            last_seen = None
     else:
         _, last_seen = decode_cursor(cursor, expected_session_id=sid)
 
-    info = await session.async_get_line_info()
-    total = info.scrollback_buffer_height + info.mutable_area_height
     diff = diff_since(overflow=info.overflow, line_count=total, last_seen=last_seen)
 
     if diff.first_line is None:

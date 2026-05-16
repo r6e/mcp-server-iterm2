@@ -208,7 +208,8 @@ async def test_get_scrollback_overflow_offset_applied(simple_app):
     session.async_get_contents.assert_awaited_once_with(900, 200)
 
 
-async def test_get_recent_output_no_cursor_returns_last_screenful(simple_app):
+async def test_get_recent_output_no_cursor_returns_last_screenful_small(simple_app):
+    """When total lines <= screen height, no-cursor returns all lines."""
     client = MagicMock()
     client.require_app.return_value = simple_app
     session = simple_app.get_session_by_id("sess-1")
@@ -224,6 +225,30 @@ async def test_get_recent_output_no_cursor_returns_last_screenful(simple_app):
     assert result["cursor_expired"] is False
     sid, line = decode_cursor(result["cursor"])
     assert (sid, line) == ("sess-1", 4)
+
+
+async def test_get_recent_output_no_cursor_bounded_to_screenful_with_large_buffer(simple_app):
+    """No-cursor call on a session with 1000 lines must return only the screenful (~20)."""
+    client = MagicMock()
+    client.require_app.return_value = simple_app
+    session = simple_app.get_session_by_id("sess-1")
+    # _line_info(overflow=0, total=1000) → scrollback=980, mutable=20
+    info = _line_info(overflow=0, total=1000)
+    session.async_get_line_info = AsyncMock(return_value=info)
+    # Return 20 lines for the screenful fetch.
+    session.async_get_contents = AsyncMock(
+        return_value=[MagicMock(string=f"L{i}") for i in range(980, 1000)]
+    )
+
+    result = await get_recent_output_impl(
+        client, session_id_arg="sess-1", env_session_id=None, cursor=None
+    )
+
+    # Should have fetched exactly the mutable area (lines 980–999 = 20 lines).
+    session.async_get_contents.assert_awaited_once_with(980, 20)
+    assert result["cursor_expired"] is False
+    sid, line = decode_cursor(result["cursor"])
+    assert (sid, line) == ("sess-1", 999)
 
 
 async def test_get_recent_output_advances_from_cursor(simple_app):
