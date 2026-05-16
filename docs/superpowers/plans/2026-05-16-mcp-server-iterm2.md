@@ -1394,18 +1394,17 @@ Returns session metadata: title (name), working directory, profile name, badge, 
 
 - [ ] **Step 1: Add the failing test**
 
-Append to `tests/unit/test_tools_read.py`:
+At the top of `tests/unit/test_tools_read.py`, update the imports (these will be needed by this and all subsequent read-tool tests):
 
 ```python
 import asyncio
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock, patch
+```
 
+Then append:
+
+```python
 from mcp_server_iterm2.tools.read import get_session_info_impl
-
-
-def _async_value(v):
-    f = asyncio.get_event_loop().create_future() if False else None  # placeholder
-    return AsyncMock(return_value=v)
 
 
 def test_get_session_info_returns_expected_fields(simple_app):
@@ -1435,8 +1434,6 @@ def test_get_session_info_returns_expected_fields(simple_app):
         "dimensions": {"cols": 120, "rows": 40},
     }
 ```
-
-(Note: the existing tests at the top of the file already import `MagicMock` via the test we wrote in Task 7; ensure imports cover `AsyncMock`. If not, add `from unittest.mock import AsyncMock, MagicMock` at the top.)
 
 - [ ] **Step 2: Run test to verify it fails**
 
@@ -2774,12 +2771,12 @@ Expected: FAIL.
 Append to `src/mcp_server_iterm2/tools/write.py`:
 
 ```python
-import shlex
 import subprocess
 
 
 async def post_notification_impl(*, title: str, body: str) -> dict[str, Any]:
-    # AppleScript string-literal escape: backslash + double-quote.
+    # AppleScript string-literal escape (distinct from shell escaping):
+    # double the backslashes, then escape embedded double quotes.
     def _escape(s: str) -> str:
         return s.replace("\\", "\\\\").replace('"', '\\"')
 
@@ -2787,7 +2784,7 @@ async def post_notification_impl(*, title: str, body: str) -> dict[str, Any]:
         f'display notification "{_escape(body)}" '
         f'with title "{_escape(title)}"'
     )
-    result = subprocess.run(  # noqa: S603 - argv fixed; body is user-supplied but escaped
+    result = subprocess.run(  # noqa: S603 - argv fixed; body is escaped, not shell-interpolated
         ["osascript", "-e", script],
         capture_output=True,
         text=True,
@@ -2795,11 +2792,8 @@ async def post_notification_impl(*, title: str, body: str) -> dict[str, Any]:
     )
     if result.returncode != 0:
         raise RuntimeError(f"osascript failed: {result.stderr.strip() or 'unknown error'}")
-    _ = shlex  # kept for readers; not used at runtime — remove if linter complains
     return {"ok": True}
 ```
-
-(Drop the `_ = shlex` placeholder and the `import shlex` line if `ruff` flags unused; they are there only as a hint that AppleScript escaping is intentionally distinct from shell escaping. If ruff complains, just remove both.)
 
 Register in `server.py`:
 
@@ -2987,13 +2981,11 @@ async def main() -> int:
     passes = 0
     failures: list[tuple[str, str]] = []
 
-    async def _run(label: str, coro_factory):
+    def _record(label: str, value, error):
         nonlocal passes
-        try:
-            value = await coro_factory()
-        except Exception as e:
-            failures.append((label, repr(e)))
-            print(f"FAIL  {label:<24} {e!r}")
+        if error is not None:
+            failures.append((label, repr(error)))
+            print(f"FAIL  {label:<24} {error!r}")
             return
         passes += 1
         preview = repr(value)
@@ -3001,41 +2993,58 @@ async def main() -> int:
             preview = preview[:77] + "..."
         print(f"PASS  {label:<24} {preview}")
 
-    await _run("list_sessions", lambda: asyncio.coroutine(read.list_sessions_impl)(client))
-    await _run("get_session_info", lambda: read.get_session_info_impl(
+    async def _run(label: str, coro):
+        try:
+            value = await coro
+        except Exception as e:
+            _record(label, None, e)
+            return
+        _record(label, value, None)
+
+    def _run_sync(label: str, fn):
+        try:
+            value = fn()
+        except Exception as e:
+            _record(label, None, e)
+            return
+        _record(label, value, None)
+
+    # list_sessions_impl is the only sync impl; everything else is async.
+    _run_sync("list_sessions", lambda: read.list_sessions_impl(client))
+    await _run("get_session_info", read.get_session_info_impl(
         client, session_id_arg=sid, env_session_id=None
     ))
-    await _run("get_screen_contents", lambda: read.get_screen_contents_impl(
+    await _run("get_screen_contents", read.get_screen_contents_impl(
         client, session_id_arg=sid, env_session_id=None
     ))
-    await _run("get_scrollback", lambda: read.get_scrollback_impl(
+    await _run("get_scrollback", read.get_scrollback_impl(
         client, session_id_arg=sid, env_session_id=None
     ))
-    await _run("get_recent_output", lambda: read.get_recent_output_impl(
+    await _run("get_recent_output", read.get_recent_output_impl(
         client, session_id_arg=sid, env_session_id=None, cursor=None
     ))
-    await _run("get_selection", lambda: read.get_selection_impl(
+    await _run("get_selection", read.get_selection_impl(
         client, session_id_arg=sid, env_session_id=None
     ))
-    await _run("get_variable", lambda: read.get_variable_impl(
+    await _run("get_variable", read.get_variable_impl(
         client, session_id_arg=sid, env_session_id=None, name="session.path"
     ))
-    await _run("list_profiles", lambda: read.list_profiles_impl(client))
+    await _run("list_profiles", read.list_profiles_impl(client))
 
-    await _run("set_badge", lambda: write.set_badge_impl(
+    await _run("set_badge", write.set_badge_impl(
         client, session_id_arg=sid, env_session_id=None, text="smoke"
     ))
-    await _run("set_title", lambda: write.set_title_impl(
+    await _run("set_title", write.set_title_impl(
         client, session_id_arg=sid, env_session_id=None, title="smoke test"
     ))
-    await _run("set_tab_color", lambda: write.set_tab_color_impl(
+    await _run("set_tab_color", write.set_tab_color_impl(
         client, session_id_arg=sid, env_session_id=None, r=80, g=160, b=240
     ))
-    await _run("set_user_variable", lambda: write.set_user_variable_impl(
+    await _run("set_user_variable", write.set_user_variable_impl(
         client, session_id_arg=sid, env_session_id=None,
         name="user.smoke", value="ok",
     ))
-    await _run("post_notification", lambda: write.post_notification_impl(
+    await _run("post_notification", write.post_notification_impl(
         title="smoke", body="all tools exercised"
     ))
 
@@ -3047,27 +3056,6 @@ async def main() -> int:
 if __name__ == "__main__":
     sys.exit(asyncio.run(main()))
 ```
-
-Note: the `asyncio.coroutine(...)` wrapper for `list_sessions_impl` is needed because it's a sync function; the `_run` helper awaits its caller. Replace it with the simpler form:
-
-```python
-    async def _run_sync(label: str, fn):
-        try:
-            value = fn()
-        except Exception as e:
-            failures.append((label, repr(e)))
-            print(f"FAIL  {label:<24} {e!r}")
-            return
-        passes += 1
-        preview = repr(value)
-        if len(preview) > 80:
-            preview = preview[:77] + "..."
-        print(f"PASS  {label:<24} {preview}")
-
-    _run_sync("list_sessions", lambda: read.list_sessions_impl(client))
-```
-
-Use `_run` for async impls and `_run_sync` for the one sync impl (`list_sessions_impl`).
 
 - [ ] **Step 2: Verify it runs (optional but recommended)**
 
