@@ -85,3 +85,16 @@ async def get_screen_contents_impl(
         "text": "\n".join(lines),
         "cursor": {"row": contents.cursor_coord.y, "col": contents.cursor_coord.x},
     }
+
+
+async def get_selection_impl(
+    client: Any, *, session_id_arg: str | None, env_session_id: str | None
+) -> dict[str, Any]:
+    """Return the currently-selected text in a session, or empty string if nothing is selected."""
+    app = client.require_app()
+    session = resolve_session(app, session_id_arg, env_session_id)
+    selection = await session.async_get_selection()
+    if not selection.sub_selections:
+        return {"text": ""}
+    text = await session.async_get_selection_text(selection)
+    return {"text": text}

@@ -5,6 +5,7 @@ import pytest
 from mcp_server_iterm2.errors import Disconnected
 from mcp_server_iterm2.tools.read import (
     get_screen_contents_impl,
+    get_selection_impl,
     get_session_info_impl,
     list_sessions_impl,
 )
@@ -93,3 +94,31 @@ async def test_get_screen_contents_returns_lines_and_cursor(simple_app):
         "text": "hello\nworld",
         "cursor": {"row": 1, "col": 3},
     }
+
+
+async def test_get_selection_returns_text(simple_app):
+    client = MagicMock()
+    client.require_app.return_value = simple_app
+    session = simple_app.get_session_by_id("sess-1")
+    selection = MagicMock()
+    selection.sub_selections = [MagicMock()]  # non-empty
+    session.async_get_selection = AsyncMock(return_value=selection)
+    session.async_get_selection_text = AsyncMock(return_value="copied text")
+
+    result = await get_selection_impl(client, session_id_arg="sess-1", env_session_id=None)
+    assert result == {"text": "copied text"}
+    session.async_get_selection_text.assert_awaited_once_with(selection)
+
+
+async def test_get_selection_empty_when_no_subselections(simple_app):
+    client = MagicMock()
+    client.require_app.return_value = simple_app
+    session = simple_app.get_session_by_id("sess-1")
+    selection = MagicMock()
+    selection.sub_selections = []  # empty: no current selection
+    session.async_get_selection = AsyncMock(return_value=selection)
+    session.async_get_selection_text = AsyncMock()  # should NOT be called
+
+    result = await get_selection_impl(client, session_id_arg="sess-1", env_session_id=None)
+    assert result == {"text": ""}
+    session.async_get_selection_text.assert_not_awaited()
