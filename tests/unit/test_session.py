@@ -3,7 +3,29 @@ from unittest.mock import MagicMock
 import pytest
 
 from mcp_server_iterm2.errors import NoCurrentSession, SessionNotFound
-from mcp_server_iterm2.session import resolve_session
+from mcp_server_iterm2.session import normalize_iterm_session_id, resolve_session
+
+
+def test_normalize_strips_position_prefix():
+    assert (
+        normalize_iterm_session_id("w2t0p0:810AA9F5-6213-4CB3-B57B-13EBD1F1F73B")
+        == "810AA9F5-6213-4CB3-B57B-13EBD1F1F73B"
+    )
+
+
+def test_normalize_leaves_bare_uuid_alone():
+    assert (
+        normalize_iterm_session_id("810AA9F5-6213-4CB3-B57B-13EBD1F1F73B")
+        == "810AA9F5-6213-4CB3-B57B-13EBD1F1F73B"
+    )
+
+
+def test_normalize_returns_none_for_none():
+    assert normalize_iterm_session_id(None) is None
+
+
+def test_normalize_returns_none_for_empty_string():
+    assert normalize_iterm_session_id("") is None
 
 
 def _app_with(sessions: dict[str, MagicMock]) -> MagicMock:

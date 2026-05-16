@@ -12,11 +12,12 @@ import os
 import sys
 
 from mcp_server_iterm2.connection import ITermClient
+from mcp_server_iterm2.session import normalize_iterm_session_id
 from mcp_server_iterm2.tools import read, write
 
 
 async def main() -> int:
-    sid = os.environ.get("ITERM_SESSION_ID")
+    sid = normalize_iterm_session_id(os.environ.get("ITERM_SESSION_ID"))
     if not sid:
         print("ERROR: ITERM_SESSION_ID is not set. Run this from inside an iTerm2 session.")
         return 1
