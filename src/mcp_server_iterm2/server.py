@@ -60,6 +60,18 @@ def create_server(*, client: Any) -> FastMCP:
         except MCPIterm2Error as e:
             raise RuntimeError(to_error_text(e)) from e
 
+    @mcp.tool()
+    async def get_selection(session_id: str | None = None) -> dict[str, Any]:
+        """Return currently-selected text in the session, or empty string."""
+        try:
+            return await read_tools.get_selection_impl(
+                client,
+                session_id_arg=session_id,
+                env_session_id=_env_session_id(),
+            )
+        except MCPIterm2Error as e:
+            raise RuntimeError(to_error_text(e)) from e
+
     return mcp
 
 
