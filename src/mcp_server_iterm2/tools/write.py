@@ -66,9 +66,7 @@ async def set_user_variable_impl(
     value: str,
 ) -> dict[str, Any]:
     if not name.startswith("user."):
-        raise ValueError(
-            f"variable name must start with 'user.' (got {name!r})"
-        )
+        raise ValueError(f"variable name must start with 'user.' (got {name!r})")
     app = client.require_app()
     session = resolve_session(app, session_id_arg, env_session_id)
     await session.async_set_variable(name, value)
@@ -88,10 +86,7 @@ async def post_notification_impl(*, title: str, body: str) -> dict[str, Any]:
             .replace("\t", "\\t")
         )
 
-    script = (
-        f'display notification "{_escape(body)}" '
-        f'with title "{_escape(title)}"'
-    )
+    script = f'display notification "{_escape(body)}" with title "{_escape(title)}"'
     result = subprocess.run(
         ["osascript", "-e", script],
         capture_output=True,
