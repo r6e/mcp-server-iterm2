@@ -186,6 +186,14 @@ def create_server(*, client: Any) -> FastMCP:
         except MCPIterm2Error as e:
             raise RuntimeError(to_error_text(e)) from e
 
+    @mcp.tool()
+    async def post_notification(title: str, body: str) -> dict[str, Any]:
+        """Post a macOS notification (banner) with the given title and body."""
+        try:
+            return await write_tools.post_notification_impl(title=title, body=body)
+        except MCPIterm2Error as e:
+            raise RuntimeError(to_error_text(e)) from e
+
     return mcp
 
 
