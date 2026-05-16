@@ -46,7 +46,9 @@ target-version = "py314"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "UP", "B", "SIM", "RUF"]
-ignore = []
+# N818: error-class naming is intentional (see design spec).
+# RUF001: cookie.py literally matches iTerm2's right-single-quotation-mark error text.
+ignore = ["N818", "RUF001"]
 
 [tool.ruff.format]
 quote-style = "double"
