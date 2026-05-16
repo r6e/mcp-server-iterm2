@@ -20,5 +20,5 @@ def iterm_session_id() -> str:
 @pytest.fixture(scope="module")
 async def client() -> ITermClient:
     c = ITermClient()
-    await c._connect_once()
+    await c.connect_once()
     return c

@@ -22,7 +22,7 @@ async def main() -> int:
         return 1
 
     client = ITermClient()
-    await client._connect_once()
+    await client.connect_once()
     passes = 0
     failures: list[tuple[str, str]] = []
 
