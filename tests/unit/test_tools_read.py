@@ -1,4 +1,3 @@
-import asyncio
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -40,7 +39,7 @@ def test_list_sessions_propagates_disconnected():
         list_sessions_impl(client)
 
 
-def test_get_session_info_returns_expected_fields(simple_app):
+async def test_get_session_info_returns_expected_fields(simple_app):
     client = MagicMock()
     client.require_app.return_value = simple_app
     session = simple_app.get_session_by_id("sess-1")
@@ -54,12 +53,10 @@ def test_get_session_info_returns_expected_fields(simple_app):
     profile = MagicMock()
     profile.name = "Default"
     session.async_get_profile = AsyncMock(return_value=profile)
-    session.grid_size = MagicMock(return_value=MagicMock(width=120, height=40))
+    session.grid_size = MagicMock(width=120, height=40)
     session.name = "bash"
 
-    result = asyncio.run(
-        get_session_info_impl(client, session_id_arg="sess-1", env_session_id=None)
-    )
+    result = await get_session_info_impl(client, session_id_arg="sess-1", env_session_id=None)
 
     assert result == {
         "session_id": "sess-1",
