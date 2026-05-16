@@ -10,7 +10,11 @@ class ITermNotRunning(MCPIterm2Error):
 
 
 class AuthDenied(MCPIterm2Error):
-    """User declined the cookie authorization prompt."""
+    """User declined the cookie authorization prompt for this script."""
+
+
+class APINotEnabled(MCPIterm2Error):
+    """iTerm2's Python API is disabled in preferences."""
 
 
 class Disconnected(MCPIterm2Error):
@@ -48,8 +52,13 @@ def to_error_text(err: BaseException) -> str:
             return "iTerm2 is not running. Start iTerm2 and try again."
         case AuthDenied():
             return (
-                "iTerm2 denied API authorization. "
-                "Re-enable in iTerm2 → Preferences → General → Magic."
+                "iTerm2 denied API authorization for this script. "
+                "Re-approve in iTerm2 → Settings → General → Magic."
+            )
+        case APINotEnabled():
+            return (
+                "iTerm2's Python API is not enabled. "
+                "Enable it in iTerm2 → Settings → General → Magic → 'Enable Python API'."
             )
         case Disconnected():
             return "iTerm2 unavailable, reconnecting."

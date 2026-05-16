@@ -1,4 +1,5 @@
 from mcp_server_iterm2.errors import (
+    APINotEnabled,
     AuthDenied,
     Disconnected,
     ITermNotRunning,
@@ -16,7 +17,15 @@ def test_iterm_not_running_message():
 
 def test_auth_denied_message():
     assert to_error_text(AuthDenied()) == (
-        "iTerm2 denied API authorization. Re-enable in iTerm2 → Preferences → General → Magic."
+        "iTerm2 denied API authorization for this script. "
+        "Re-approve in iTerm2 → Settings → General → Magic."
+    )
+
+
+def test_api_not_enabled_message():
+    assert to_error_text(APINotEnabled()) == (
+        "iTerm2's Python API is not enabled. "
+        "Enable it in iTerm2 → Settings → General → Magic → 'Enable Python API'."
     )
 
 

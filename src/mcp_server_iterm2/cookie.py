@@ -2,7 +2,7 @@
 
 import subprocess
 
-from mcp_server_iterm2.errors import AuthDenied, ITermNotRunning
+from mcp_server_iterm2.errors import APINotEnabled, AuthDenied, ITermNotRunning
 
 _OSASCRIPT_COMMAND = [
     "osascript",
@@ -14,9 +14,10 @@ _OSASCRIPT_COMMAND = [
 def request_cookie() -> str:
     """Run osascript to request a one-time cookie.
 
-    Returns the cookie string. Raises ITermNotRunning if iTerm2 is not
-    running, or AuthDenied if the user rejects the prompt (or any other
-    osascript failure occurs).
+    Returns the cookie string. Raises:
+      - ITermNotRunning if iTerm2 isn't running.
+      - APINotEnabled if the Python API toggle is off in iTerm2 prefs.
+      - AuthDenied if the user denied this script (or any other osascript failure).
     """
     result = subprocess.run(
         _OSASCRIPT_COMMAND,
@@ -27,7 +28,9 @@ def request_cookie() -> str:
     if result.returncode == 0:
         return result.stdout.strip()
 
-    stderr = result.stderr.lower()
-    if "isn’t running" in result.stderr or "application isn't running" in stderr:
+    stderr_lower = result.stderr.lower()
+    if "isn’t running" in result.stderr or "application isn't running" in stderr_lower:
         raise ITermNotRunning()
+    if "python api is not enabled" in stderr_lower:
+        raise APINotEnabled()
     raise AuthDenied()
