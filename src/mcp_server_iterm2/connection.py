@@ -31,6 +31,7 @@ class ITermClient:
     def __init__(self) -> None:
         self._connection: Any = None
         self._app: Any = None
+        self._disconnect_event: asyncio.Event = asyncio.Event()
 
     @property
     def connected(self) -> bool:
@@ -51,7 +52,35 @@ class ITermClient:
             raise Disconnected()
         return self._connection
 
-    async def _connect_once(self) -> None:
+    def _install_disconnect_watcher(self) -> None:
+        """Attach a done-callback to the SDK's internal dispatch task.
+
+        When the WebSocket closes, the dispatch task finishes (done() == True)
+        and fires this callback, which sets _disconnect_event so
+        run_reconnect_loop can notice the drop without polling.
+
+        The dispatch task is stored under the Python name-mangled attribute
+        ``_Connection__dispatch_forever_future``. This is private SDK
+        internals, but has been stable across all iterm2 PyPI releases; it
+        is the only reliable zero-traffic disconnect signal when using
+        ``Connection.async_create()`` (the callback list in
+        ``iterm2.connection.gDisconnectCallbacks`` is only drained inside
+        ``Connection.run()``, which we don't use).
+        """
+        dispatch_task = getattr(
+            self._connection, "_Connection__dispatch_forever_future", None
+        )
+        if dispatch_task is not None:
+            dispatch_task.add_done_callback(lambda _: self._disconnect_event.set())
+        else:
+            # SDK internals changed; log a warning so we don't silently lose
+            # disconnect detection. The loop will still reconnect on the next
+            # tool call that raises an SDK exception.
+            log.warning(
+                "iterm2 SDK dispatch task not found; disconnect detection degraded"
+            )
+
+    async def connect_once(self) -> None:
         """Establish a single connection attempt. Raises on failure."""
         cookie = request_cookie()
         os.environ["ITERM2_COOKIE"] = cookie
@@ -64,9 +93,15 @@ class ITermClient:
         attempt = 0
         while True:
             try:
-                await self._connect_once()
+                await self.connect_once()
                 attempt = 0
-                await asyncio.Event().wait()  # pragma: no cover
+                self._disconnect_event = asyncio.Event()
+                self._install_disconnect_watcher()
+                await self._disconnect_event.wait()
+                # Disconnect observed; fall through to backoff retry.
+                self._connection = None
+                self._app = None
+                raise ConnectionError("iTerm2 disconnected")
             except asyncio.CancelledError:
                 raise
             except Exception as exc:

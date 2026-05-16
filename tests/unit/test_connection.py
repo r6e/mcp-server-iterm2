@@ -29,7 +29,7 @@ async def test_start_connects_and_sets_cookie_env(mock_iterm2, _):
     mock_iterm2.async_get_app = AsyncMock(return_value=fake_app)
 
     client = ITermClient()
-    await client._connect_once()
+    await client.connect_once()
 
     assert os.environ["ITERM2_COOKIE"] == "cookie123"
     assert client.connected is True
@@ -72,3 +72,44 @@ async def test_run_reconnect_loop_retries_on_failure(mock_iterm2, _):
         await task
     assert client.connected is True
     assert calls["n"] == 3
+
+
+@pytest.mark.asyncio
+@patch("mcp_server_iterm2.connection._sleep", new=AsyncMock())
+@patch("mcp_server_iterm2.connection.request_cookie", return_value="cookie123")
+@patch("mcp_server_iterm2.connection.iterm2")
+async def test_run_reconnect_loop_reconnects_on_disconnect(mock_iterm2, _):
+    """Simulating a mid-life disconnect: the loop should reconnect automatically."""
+    mock_iterm2.Connection.async_create = AsyncMock(return_value=MagicMock())
+    mock_iterm2.async_get_app = AsyncMock(return_value=MagicMock())
+
+    client = ITermClient()
+    # Override _install_disconnect_watcher so it's a no-op; we'll fire
+    # _disconnect_event manually to simulate the websocket closing.
+    client._install_disconnect_watcher = lambda: None  # type: ignore[method-assign]
+
+    task = asyncio.create_task(client.run_reconnect_loop())
+
+    # Wait for the first connection to establish.
+    for _ in range(50):
+        if client.connected:
+            break
+        await asyncio.sleep(0)
+    assert client.connected, "should have connected on first attempt"
+
+    # Simulate disconnect by firing the event.
+    client._disconnect_event.set()
+
+    # Give the loop a chance to detect the disconnect and reconnect.
+    for _ in range(50):
+        if mock_iterm2.Connection.async_create.await_count >= 2:
+            break
+        await asyncio.sleep(0)
+
+    task.cancel()
+    with contextlib.suppress(asyncio.CancelledError):
+        await task
+
+    assert mock_iterm2.Connection.async_create.await_count >= 2, (
+        "should have reconnected after disconnect"
+    )
