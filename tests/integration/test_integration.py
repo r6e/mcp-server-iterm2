@@ -62,8 +62,11 @@ async def test_set_tab_color_roundtrip(client, iterm_session_id):
 
 async def test_set_user_variable_roundtrip(client, iterm_session_id):
     await write.set_user_variable_impl(
-        client, session_id_arg=iterm_session_id, env_session_id=None,
-        name="user.itest", value="hello"
+        client,
+        session_id_arg=iterm_session_id,
+        env_session_id=None,
+        name="user.itest",
+        value="hello",
     )
     got = await read.get_variable_impl(
         client, session_id_arg=iterm_session_id, env_session_id=None, name="user.itest"
@@ -91,7 +94,9 @@ async def test_get_recent_output_advances_cursor(client, iterm_session_id):
         client, session_id_arg=iterm_session_id, env_session_id=None, cursor=None
     )
     second = await read.get_recent_output_impl(
-        client, session_id_arg=iterm_session_id, env_session_id=None,
+        client,
+        session_id_arg=iterm_session_id,
+        env_session_id=None,
         cursor=first["cursor"],
     )
     # Same cursor or advanced; should not error and should be empty unless new output appeared.
@@ -112,7 +117,5 @@ async def test_list_profiles(client):
 
 
 async def test_post_notification(client):
-    result = await write.post_notification_impl(
-        title="integration", body="test"
-    )
+    result = await write.post_notification_impl(title="integration", body="test")
     assert result == {"ok": True}

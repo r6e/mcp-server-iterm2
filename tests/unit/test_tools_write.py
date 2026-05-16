@@ -30,9 +30,7 @@ async def test_set_badge_propagates_disconnected():
     client = MagicMock()
     client.require_app.side_effect = Disconnected()
     with pytest.raises(Disconnected):
-        await set_badge_impl(
-            client, session_id_arg="sess-1", env_session_id=None, text="x"
-        )
+        await set_badge_impl(client, session_id_arg="sess-1", env_session_id=None, text="x")
 
 
 async def test_set_title_calls_async_set_name(simple_app):
@@ -52,9 +50,7 @@ async def test_set_title_propagates_disconnected():
     client = MagicMock()
     client.require_app.side_effect = Disconnected()
     with pytest.raises(Disconnected):
-        await set_title_impl(
-            client, session_id_arg="sess-1", env_session_id=None, title="x"
-        )
+        await set_title_impl(client, session_id_arg="sess-1", env_session_id=None, title="x")
 
 
 @patch("mcp_server_iterm2.tools.write.iterm2")
@@ -104,8 +100,11 @@ async def test_set_user_variable_writes(simple_app):
     session.async_set_variable = AsyncMock()
 
     result = await set_user_variable_impl(
-        client, session_id_arg="sess-1", env_session_id=None,
-        name="user.task", value="refactor",
+        client,
+        session_id_arg="sess-1",
+        env_session_id=None,
+        name="user.task",
+        value="refactor",
     )
     assert result == {"ok": True, "name": "user.task", "value": "refactor"}
     session.async_set_variable.assert_awaited_once_with("user.task", "refactor")
@@ -116,8 +115,11 @@ async def test_set_user_variable_rejects_non_user_prefix(simple_app):
     client.require_app.return_value = simple_app
     with pytest.raises(ValueError):
         await set_user_variable_impl(
-            client, session_id_arg="sess-1", env_session_id=None,
-            name="session.path", value="oops",
+            client,
+            session_id_arg="sess-1",
+            env_session_id=None,
+            name="session.path",
+            value="oops",
         )
 
 
@@ -126,8 +128,11 @@ async def test_set_user_variable_propagates_disconnected():
     client.require_app.side_effect = Disconnected()
     with pytest.raises(Disconnected):
         await set_user_variable_impl(
-            client, session_id_arg="sess-1", env_session_id=None,
-            name="user.x", value="y",
+            client,
+            session_id_arg="sess-1",
+            env_session_id=None,
+            name="user.x",
+            value="y",
         )
 
 
@@ -164,7 +169,7 @@ async def test_post_notification_escapes_double_quotes_in_body(mock_run):
     args, _ = mock_run.call_args
     script = args[0][2]  # the -e arg
     # Embedded quotes should be escaped (preceded by backslash) so the AppleScript parses.
-    assert r'hello \"world\"' in script
+    assert r"hello \"world\"" in script
 
 
 @patch("mcp_server_iterm2.tools.write.subprocess.run")

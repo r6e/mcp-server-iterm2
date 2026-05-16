@@ -93,9 +93,7 @@ async def test_get_screen_contents_returns_lines_and_cursor(simple_app):
     contents.cursor_coord = MagicMock(x=3, y=1)
     session.async_get_screen_contents = AsyncMock(return_value=contents)
 
-    result = await get_screen_contents_impl(
-        client, session_id_arg="sess-1", env_session_id=None
-    )
+    result = await get_screen_contents_impl(client, session_id_arg="sess-1", env_session_id=None)
     assert result == {
         "text": "hello\nworld",
         "cursor": {"row": 1, "col": 3},
@@ -167,9 +165,7 @@ async def test_get_scrollback_capped_at_5000(simple_app):
         return_value=[MagicMock(string="x") for _ in range(5000)]
     )
 
-    await get_scrollback_impl(
-        client, session_id_arg="sess-1", env_session_id=None, n_lines=999999
-    )
+    await get_scrollback_impl(client, session_id_arg="sess-1", env_session_id=None, n_lines=999999)
     session.async_get_contents.assert_awaited_once_with(95000, 5000)
 
 
@@ -182,9 +178,7 @@ async def test_get_scrollback_when_fewer_lines_than_requested(simple_app):
         return_value=[MagicMock(string=f"L{i}") for i in range(10)]
     )
 
-    await get_scrollback_impl(
-        client, session_id_arg="sess-1", env_session_id=None, n_lines=200
-    )
+    await get_scrollback_impl(client, session_id_arg="sess-1", env_session_id=None, n_lines=200)
     session.async_get_contents.assert_awaited_once_with(0, 10)
 
 
@@ -207,13 +201,9 @@ async def test_get_scrollback_overflow_offset_applied(simple_app):
     client.require_app.return_value = simple_app
     session = simple_app.get_session_by_id("sess-1")
     session.async_get_line_info = AsyncMock(return_value=_line_info(overflow=100, total=1000))
-    session.async_get_contents = AsyncMock(
-        return_value=[MagicMock(string="x") for _ in range(200)]
-    )
+    session.async_get_contents = AsyncMock(return_value=[MagicMock(string="x") for _ in range(200)])
 
-    await get_scrollback_impl(
-        client, session_id_arg="sess-1", env_session_id=None, n_lines=200
-    )
+    await get_scrollback_impl(client, session_id_arg="sess-1", env_session_id=None, n_lines=200)
     # start = overflow + total - take = 100 + 1000 - 200 = 900
     session.async_get_contents.assert_awaited_once_with(900, 200)
 
