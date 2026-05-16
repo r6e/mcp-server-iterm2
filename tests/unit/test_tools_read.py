@@ -3,7 +3,11 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from mcp_server_iterm2.errors import Disconnected
-from mcp_server_iterm2.tools.read import get_session_info_impl, list_sessions_impl
+from mcp_server_iterm2.tools.read import (
+    get_screen_contents_impl,
+    get_session_info_impl,
+    list_sessions_impl,
+)
 
 
 def test_list_sessions_returns_hierarchy(simple_app):
@@ -66,4 +70,26 @@ async def test_get_session_info_returns_expected_fields(simple_app):
         "badge": "WORK",
         "tty": "/dev/ttys001",
         "dimensions": {"cols": 120, "rows": 40},
+    }
+
+
+async def test_get_screen_contents_returns_lines_and_cursor(simple_app):
+    client = MagicMock()
+    client.require_app.return_value = simple_app
+    session = simple_app.get_session_by_id("sess-1")
+
+    contents = MagicMock()
+    contents.number_of_lines = 2
+    line0 = MagicMock(string="hello")
+    line1 = MagicMock(string="world")
+    contents.line = MagicMock(side_effect=[line0, line1])
+    contents.cursor_coord = MagicMock(x=3, y=1)
+    session.async_get_screen_contents = AsyncMock(return_value=contents)
+
+    result = await get_screen_contents_impl(
+        client, session_id_arg="sess-1", env_session_id=None
+    )
+    assert result == {
+        "text": "hello\nworld",
+        "cursor": {"row": 1, "col": 3},
     }

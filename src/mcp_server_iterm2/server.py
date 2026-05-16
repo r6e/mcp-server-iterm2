@@ -48,6 +48,18 @@ def create_server(*, client: Any) -> FastMCP:
         except MCPIterm2Error as e:
             raise RuntimeError(to_error_text(e)) from e
 
+    @mcp.tool()
+    async def get_screen_contents(session_id: str | None = None) -> dict[str, Any]:
+        """Return the visible buffer text and cursor position for a session."""
+        try:
+            return await read_tools.get_screen_contents_impl(
+                client,
+                session_id_arg=session_id,
+                env_session_id=_env_session_id(),
+            )
+        except MCPIterm2Error as e:
+            raise RuntimeError(to_error_text(e)) from e
+
     return mcp
 
 
