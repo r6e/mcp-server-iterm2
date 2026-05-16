@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import os
 from typing import Any
 
@@ -14,6 +15,9 @@ from mcp_server_iterm2.errors import (
     to_error_text,
 )
 from mcp_server_iterm2.tools import read as read_tools
+
+_STARTUP_TIMEOUT_S = 5.0
+_STARTUP_POLL_INTERVAL_S = 0.1
 
 
 def create_server(*, client: Any) -> FastMCP:
@@ -48,13 +52,16 @@ def main() -> None:
         reconnect = asyncio.create_task(client.run_reconnect_loop())
         try:
             # Wait briefly for first connect so the user sees errors at startup.
-            for _ in range(50):
+            poll_count = int(_STARTUP_TIMEOUT_S / _STARTUP_POLL_INTERVAL_S)
+            for _ in range(poll_count):
                 if client.connected:
                     break
-                await asyncio.sleep(0.1)
+                await asyncio.sleep(_STARTUP_POLL_INTERVAL_S)
             mcp = create_server(client=client)
             await mcp.run_stdio_async()
         finally:
             reconnect.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await reconnect
 
     asyncio.run(_run())
