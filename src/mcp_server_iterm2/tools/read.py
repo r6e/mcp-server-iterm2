@@ -165,3 +165,24 @@ async def get_recent_output_impl(
         "cursor": encode_cursor(session_id=sid, line_number=diff.new_last_seen),
         "cursor_expired": diff.cursor_expired,
     }
+
+
+async def get_variable_impl(
+    client: Any,
+    *,
+    session_id_arg: str | None,
+    env_session_id: str | None,
+    name: str,
+) -> dict[str, Any]:
+    """Read an iTerm2 variable by fully-qualified name, routing by scope prefix."""
+    app = client.require_app()
+    session = resolve_session(app, session_id_arg, env_session_id)
+    if name.startswith("tab."):
+        value = await session.tab.async_get_variable(name)
+    elif name.startswith("window."):
+        window = app.get_window_for_tab(session.tab.tab_id)
+        value = await window.async_get_variable(name)
+    else:
+        # session.* and user.* both live on the session
+        value = await session.async_get_variable(name)
+    return {"name": name, "value": value}

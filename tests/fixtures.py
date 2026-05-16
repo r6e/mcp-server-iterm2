@@ -26,6 +26,8 @@ def make_tab(
     t.tab_id = tab_id
     t.sessions = sessions
     t.current_session = current or (sessions[0] if sessions else None)
+    for s in sessions:
+        s.tab = t
     return t
 
 
@@ -53,4 +55,9 @@ def make_app(
 
     sessions_by_id = {s.session_id: s for w in windows for t in w.tabs for s in t.sessions}
     app.get_session_by_id = lambda sid: sessions_by_id.get(sid)
+
+    tabs_by_id = {t.tab_id: t for w in windows for t in w.tabs}
+    windows_by_tab_id = {t.tab_id: w for w in windows for t in w.tabs}
+    app.get_tab_by_id = lambda tid: tabs_by_id.get(tid)
+    app.get_window_for_tab = lambda tid: windows_by_tab_id.get(tid)
     return app
