@@ -10,6 +10,11 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
+from mcp_server_iterm2.output_cursor import (
+    decode_cursor,
+    diff_since,
+    encode_cursor,
+)
 from mcp_server_iterm2.session import resolve_session
 
 SCROLLBACK_MAX = 5000
@@ -121,3 +126,42 @@ async def get_scrollback_impl(
     start = overflow + total - take
     line_contents = await session.async_get_contents(start, take)
     return {"text": "\n".join(lc.string for lc in line_contents)}
+
+
+async def get_recent_output_impl(
+    client: Any,
+    *,
+    session_id_arg: str | None,
+    env_session_id: str | None,
+    cursor: str | None,
+) -> dict[str, Any]:
+    """Return output since the given cursor, or the full buffer if no cursor supplied."""
+    app = client.require_app()
+    session = resolve_session(app, session_id_arg, env_session_id)
+    sid = session.session_id
+
+    last_seen: int | None
+    if cursor is None:
+        last_seen = None
+    else:
+        _, last_seen = decode_cursor(cursor, expected_session_id=sid)
+
+    info = await session.async_get_line_info()
+    total = info.scrollback_buffer_height + info.mutable_area_height
+    diff = diff_since(overflow=info.overflow, line_count=total, last_seen=last_seen)
+
+    if diff.first_line is None:
+        return {
+            "text": "",
+            "cursor": encode_cursor(session_id=sid, line_number=diff.new_last_seen),
+            "cursor_expired": diff.cursor_expired,
+        }
+
+    assert diff.last_line is not None  # invariant: first_line and last_line are both set
+    count = diff.last_line - diff.first_line + 1
+    line_contents = await session.async_get_contents(diff.first_line, count)
+    return {
+        "text": "\n".join(lc.string for lc in line_contents),
+        "cursor": encode_cursor(session_id=sid, line_number=diff.new_last_seen),
+        "cursor_expired": diff.cursor_expired,
+    }
