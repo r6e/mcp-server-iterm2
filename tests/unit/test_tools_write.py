@@ -1,9 +1,11 @@
+import subprocess
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from mcp_server_iterm2.errors import Disconnected
 from mcp_server_iterm2.tools.write import (
+    post_notification_impl,
     set_badge_impl,
     set_tab_color_impl,
     set_title_impl,
@@ -127,3 +129,39 @@ async def test_set_user_variable_propagates_disconnected():
             client, session_id_arg="sess-1", env_session_id=None,
             name="user.x", value="y",
         )
+
+
+@patch("mcp_server_iterm2.tools.write.subprocess.run")
+async def test_post_notification_invokes_osascript(mock_run):
+    mock_run.return_value = subprocess.CompletedProcess(
+        args=["osascript"], returncode=0, stdout="", stderr=""
+    )
+    result = await post_notification_impl(title="Done", body="The task is complete.")
+    assert result == {"ok": True}
+    args, _ = mock_run.call_args
+    cmd = args[0]
+    assert cmd[0] == "osascript"
+    joined = " ".join(cmd)
+    assert "The task is complete." in joined
+    assert "Done" in joined
+
+
+@patch("mcp_server_iterm2.tools.write.subprocess.run")
+async def test_post_notification_propagates_osascript_failure(mock_run):
+    mock_run.return_value = subprocess.CompletedProcess(
+        args=["osascript"], returncode=1, stdout="", stderr="failed"
+    )
+    with pytest.raises(RuntimeError):
+        await post_notification_impl(title="X", body="Y")
+
+
+@patch("mcp_server_iterm2.tools.write.subprocess.run")
+async def test_post_notification_escapes_double_quotes_in_body(mock_run):
+    mock_run.return_value = subprocess.CompletedProcess(
+        args=["osascript"], returncode=0, stdout="", stderr=""
+    )
+    await post_notification_impl(title="t", body='hello "world"')
+    args, _ = mock_run.call_args
+    script = args[0][2]  # the -e arg
+    # Embedded quotes should be escaped (preceded by backslash) so the AppleScript parses.
+    assert r'hello \"world\"' in script

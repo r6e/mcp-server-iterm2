@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import subprocess
 from typing import Any
 
 import iterm2  # type: ignore[import-untyped]
@@ -72,3 +73,24 @@ async def set_user_variable_impl(
     session = resolve_session(app, session_id_arg, env_session_id)
     await session.async_set_variable(name, value)
     return {"ok": True, "name": name, "value": value}
+
+
+async def post_notification_impl(*, title: str, body: str) -> dict[str, Any]:
+    # AppleScript string-literal escape (distinct from shell escaping):
+    # double the backslashes, then escape embedded double quotes.
+    def _escape(s: str) -> str:
+        return s.replace("\\", "\\\\").replace('"', '\\"')
+
+    script = (
+        f'display notification "{_escape(body)}" '
+        f'with title "{_escape(title)}"'
+    )
+    result = subprocess.run(
+        ["osascript", "-e", script],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(f"osascript failed: {result.stderr.strip() or 'unknown error'}")
+    return {"ok": True}
