@@ -21,6 +21,15 @@ class Disconnected(MCPIterm2Error):
     """Connection to iTerm2 is currently down; reconnect in progress."""
 
 
+class SubprocessTimeout(MCPIterm2Error):
+    """A child osascript invocation exceeded its time budget."""
+
+    def __init__(self, what: str, seconds: float) -> None:
+        super().__init__(what)
+        self.what = what
+        self.seconds = seconds
+
+
 class NoCurrentSession(MCPIterm2Error):
     """No session_id provided and ITERM_SESSION_ID is not set."""
 
@@ -62,6 +71,8 @@ def to_error_text(err: BaseException) -> str:
             )
         case Disconnected():
             return "iTerm2 unavailable, reconnecting."
+        case SubprocessTimeout() as e:
+            return f"osascript timed out after {e.seconds:.0f}s while {e.what}."
         case NoCurrentSession():
             return (
                 "No current session — pass session_id or run the MCP server "

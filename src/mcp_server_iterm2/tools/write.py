@@ -7,7 +7,10 @@ from typing import Any
 
 import iterm2  # type: ignore[import-untyped]
 
+from mcp_server_iterm2.errors import SubprocessTimeout
 from mcp_server_iterm2.session import resolve_session
+
+_NOTIFICATION_TIMEOUT_S = 5.0
 
 
 async def set_badge_impl(
@@ -93,12 +96,19 @@ async def post_notification_impl(*, title: str, body: str) -> dict[str, Any]:
         )
 
     script = f'display notification "{_escape(body)}" with title "{_escape(title)}"'
-    result = subprocess.run(
-        ["/usr/bin/osascript", "-e", script],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    try:
+        result = subprocess.run(
+            ["/usr/bin/osascript", "-e", script],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=_NOTIFICATION_TIMEOUT_S,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise SubprocessTimeout(
+            what="posting notification", seconds=_NOTIFICATION_TIMEOUT_S
+        ) from exc
+
     if result.returncode != 0:
         raise RuntimeError(f"osascript failed: {result.stderr.strip() or 'unknown error'}")
     return {"ok": True}

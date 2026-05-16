@@ -5,6 +5,7 @@ from mcp_server_iterm2.errors import (
     ITermNotRunning,
     NoCurrentSession,
     SessionNotFound,
+    SubprocessTimeout,
     to_error_text,
 )
 
@@ -42,6 +43,13 @@ def test_no_current_session_message():
 def test_session_not_found_message():
     err = SessionNotFound(session_id="abc-123")
     assert to_error_text(err) == "session_id abc-123 not found."
+
+
+def test_subprocess_timeout_message():
+    err = SubprocessTimeout(what="requesting iTerm2 cookie", seconds=30.0)
+    assert to_error_text(err) == (
+        "osascript timed out after 30s while requesting iTerm2 cookie."
+    )
 
 
 def test_unknown_exception_falls_through_as_internal_error():
