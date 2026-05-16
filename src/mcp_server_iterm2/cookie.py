@@ -5,7 +5,7 @@ import subprocess
 from mcp_server_iterm2.errors import APINotEnabled, AuthDenied, ITermNotRunning
 
 _OSASCRIPT_COMMAND = [
-    "osascript",
+    "/usr/bin/osascript",
     "-e",
     'tell application "iTerm2" to request cookie',
 ]
