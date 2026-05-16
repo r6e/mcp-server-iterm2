@@ -79,6 +79,7 @@ async def post_notification_impl(*, title: str, body: str) -> dict[str, Any]:
     Does not take a client/connection parameter — uses osascript directly,
     not the iTerm2 SDK, because iTerm2 doesn't expose user-notification posting.
     """
+
     # AppleScript string-literal escape (distinct from shell escaping):
     # double the backslashes first, then escape embedded double quotes and
     # control characters that would break the single-line string literal.

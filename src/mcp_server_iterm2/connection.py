@@ -67,18 +67,14 @@ class ITermClient:
         ``iterm2.connection.gDisconnectCallbacks`` is only drained inside
         ``Connection.run()``, which we don't use).
         """
-        dispatch_task = getattr(
-            self._connection, "_Connection__dispatch_forever_future", None
-        )
+        dispatch_task = getattr(self._connection, "_Connection__dispatch_forever_future", None)
         if dispatch_task is not None:
             dispatch_task.add_done_callback(lambda _: self._disconnect_event.set())
         else:
             # SDK internals changed; log a warning so we don't silently lose
             # disconnect detection. The loop will still reconnect on the next
             # tool call that raises an SDK exception.
-            log.warning(
-                "iterm2 SDK dispatch task not found; disconnect detection degraded"
-            )
+            log.warning("iterm2 SDK dispatch task not found; disconnect detection degraded")
 
     async def connect_once(self) -> None:
         """Establish a single connection attempt. Raises on failure."""
