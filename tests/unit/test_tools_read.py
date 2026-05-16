@@ -3,7 +3,9 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from mcp_server_iterm2.errors import Disconnected
+from mcp_server_iterm2.output_cursor import decode_cursor, encode_cursor
 from mcp_server_iterm2.tools.read import (
+    get_recent_output_impl,
     get_screen_contents_impl,
     get_scrollback_impl,
     get_selection_impl,
@@ -211,3 +213,73 @@ async def test_get_scrollback_overflow_offset_applied(simple_app):
     )
     # start = overflow + total - take = 100 + 1000 - 200 = 900
     session.async_get_contents.assert_awaited_once_with(900, 200)
+
+
+async def test_get_recent_output_no_cursor_returns_last_screenful(simple_app):
+    client = MagicMock()
+    client.require_app.return_value = simple_app
+    session = simple_app.get_session_by_id("sess-1")
+    session.async_get_line_info = AsyncMock(return_value=_line_info(overflow=0, total=5))
+    session.async_get_contents = AsyncMock(
+        return_value=[MagicMock(string=f"L{i}") for i in range(5)]
+    )
+
+    result = await get_recent_output_impl(
+        client, session_id_arg="sess-1", env_session_id=None, cursor=None
+    )
+    assert result["text"] == "L0\nL1\nL2\nL3\nL4"
+    assert result["cursor_expired"] is False
+    sid, line = decode_cursor(result["cursor"])
+    assert (sid, line) == ("sess-1", 4)
+
+
+async def test_get_recent_output_advances_from_cursor(simple_app):
+    client = MagicMock()
+    client.require_app.return_value = simple_app
+    session = simple_app.get_session_by_id("sess-1")
+    session.async_get_line_info = AsyncMock(return_value=_line_info(overflow=0, total=10))
+    session.async_get_contents = AsyncMock(
+        return_value=[MagicMock(string=f"L{i}") for i in range(5, 10)]
+    )
+
+    prior = encode_cursor(session_id="sess-1", line_number=4)
+    result = await get_recent_output_impl(
+        client, session_id_arg="sess-1", env_session_id=None, cursor=prior
+    )
+    assert result["text"] == "L5\nL6\nL7\nL8\nL9"
+    assert result["cursor_expired"] is False
+    session.async_get_contents.assert_awaited_once_with(5, 5)
+
+
+async def test_get_recent_output_no_new_lines(simple_app):
+    client = MagicMock()
+    client.require_app.return_value = simple_app
+    session = simple_app.get_session_by_id("sess-1")
+    session.async_get_line_info = AsyncMock(return_value=_line_info(overflow=0, total=10))
+    session.async_get_contents = AsyncMock()
+
+    prior = encode_cursor(session_id="sess-1", line_number=9)
+    result = await get_recent_output_impl(
+        client, session_id_arg="sess-1", env_session_id=None, cursor=prior
+    )
+    assert result["text"] == ""
+    assert result["cursor_expired"] is False
+    session.async_get_contents.assert_not_awaited()
+
+
+async def test_get_recent_output_cursor_expired(simple_app):
+    client = MagicMock()
+    client.require_app.return_value = simple_app
+    session = simple_app.get_session_by_id("sess-1")
+    # Buffer now covers lines 500..699; old cursor at 100 is expired.
+    session.async_get_line_info = AsyncMock(return_value=_line_info(overflow=500, total=200))
+    session.async_get_contents = AsyncMock(
+        return_value=[MagicMock(string=f"L{i}") for i in range(500, 700)]
+    )
+
+    prior = encode_cursor(session_id="sess-1", line_number=100)
+    result = await get_recent_output_impl(
+        client, session_id_arg="sess-1", env_session_id=None, cursor=prior
+    )
+    assert result["cursor_expired"] is True
+    session.async_get_contents.assert_awaited_once_with(500, 200)

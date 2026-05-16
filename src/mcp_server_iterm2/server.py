@@ -87,6 +87,21 @@ def create_server(*, client: Any) -> FastMCP:
         except MCPIterm2Error as e:
             raise RuntimeError(to_error_text(e)) from e
 
+    @mcp.tool()
+    async def get_recent_output(
+        session_id: str | None = None, cursor: str | None = None
+    ) -> dict[str, Any]:
+        """Return output since the given cursor (or last screenful if no cursor)."""
+        try:
+            return await read_tools.get_recent_output_impl(
+                client,
+                session_id_arg=session_id,
+                env_session_id=_env_session_id(),
+                cursor=cursor,
+            )
+        except MCPIterm2Error as e:
+            raise RuntimeError(to_error_text(e)) from e
+
     return mcp
 
 
