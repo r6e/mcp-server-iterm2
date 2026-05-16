@@ -52,7 +52,7 @@ def main() -> None:
         reconnect = asyncio.create_task(client.run_reconnect_loop())
         try:
             # Wait briefly for first connect so the user sees errors at startup.
-            poll_count = int(_STARTUP_TIMEOUT_S / _STARTUP_POLL_INTERVAL_S)
+            poll_count = round(_STARTUP_TIMEOUT_S / _STARTUP_POLL_INTERVAL_S)
             for _ in range(poll_count):
                 if client.connected:
                     break
