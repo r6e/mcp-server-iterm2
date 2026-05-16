@@ -141,9 +141,9 @@ async def test_post_notification_invokes_osascript(mock_run):
     args, _ = mock_run.call_args
     cmd = args[0]
     assert cmd[0] == "osascript"
-    joined = " ".join(cmd)
-    assert "The task is complete." in joined
-    assert "Done" in joined
+    script = cmd[2]
+    assert "The task is complete." in script
+    assert "Done" in script
 
 
 @patch("mcp_server_iterm2.tools.write.subprocess.run")
@@ -165,3 +165,17 @@ async def test_post_notification_escapes_double_quotes_in_body(mock_run):
     script = args[0][2]  # the -e arg
     # Embedded quotes should be escaped (preceded by backslash) so the AppleScript parses.
     assert r'hello \"world\"' in script
+
+
+@patch("mcp_server_iterm2.tools.write.subprocess.run")
+async def test_post_notification_escapes_newlines_in_body(mock_run):
+    mock_run.return_value = subprocess.CompletedProcess(
+        args=["osascript"], returncode=0, stdout="", stderr=""
+    )
+    await post_notification_impl(title="t", body="line1\nline2")
+    args, _ = mock_run.call_args
+    script = args[0][2]
+    # The script should NOT contain a literal newline (which would corrupt AppleScript)
+    assert "\n" not in script
+    # The escape sequence \n (two characters: backslash + n) SHOULD be present
+    assert r"line1\nline2" in script

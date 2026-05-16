@@ -77,9 +77,16 @@ async def set_user_variable_impl(
 
 async def post_notification_impl(*, title: str, body: str) -> dict[str, Any]:
     # AppleScript string-literal escape (distinct from shell escaping):
-    # double the backslashes, then escape embedded double quotes.
+    # double the backslashes first, then escape embedded double quotes and
+    # control characters that would break the single-line string literal.
     def _escape(s: str) -> str:
-        return s.replace("\\", "\\\\").replace('"', '\\"')
+        return (
+            s.replace("\\", "\\\\")
+            .replace('"', '\\"')
+            .replace("\n", "\\n")
+            .replace("\r", "\\r")
+            .replace("\t", "\\t")
+        )
 
     script = (
         f'display notification "{_escape(body)}" '
