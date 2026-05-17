@@ -1,3 +1,6 @@
+import base64
+import json
+
 import pytest
 
 from mcp_server_iterm2.output_cursor import (
@@ -70,3 +73,37 @@ def test_decode_cursor_rejects_oversize_input():
     big = "A" * 16388  # 16388 % 4 == 0; still > _MAX_CURSOR_LEN (16384)
     with pytest.raises(CursorInvalid, match="exceeds limit"):
         decode_cursor(big)
+
+
+def test_decode_cursor_rejects_non_string_sid():
+    """Defense-in-depth: a base64-encoded cursor with a non-string sid must fail."""
+    payload = json.dumps({"sid": 42, "line": 0}).encode("utf-8")
+    cursor = base64.urlsafe_b64encode(payload).decode("ascii")
+    with pytest.raises(CursorInvalid, match="not a string"):
+        decode_cursor(cursor)
+
+
+def test_decode_cursor_rejects_line_above_max():
+    """Reject cursors with line numbers exceeding the iTerm2 line-index range."""
+    payload = json.dumps({"sid": "sess-1", "line": 2**31}).encode("utf-8")
+    cursor = base64.urlsafe_b64encode(payload).decode("ascii")
+    with pytest.raises(CursorInvalid, match="line number out of range"):
+        decode_cursor(cursor)
+
+
+def test_decode_cursor_rejects_line_below_min():
+    """Reject cursors with line numbers below the encodable range."""
+    payload = json.dumps({"sid": "sess-1", "line": -(2**31) - 1}).encode("utf-8")
+    cursor = base64.urlsafe_b64encode(payload).decode("ascii")
+    with pytest.raises(CursorInvalid, match="line number out of range"):
+        decode_cursor(cursor)
+
+
+def test_decode_cursor_accepts_boundary_line_values():
+    """The bounds are inclusive: 2**31 - 1 and -2**31 must both decode cleanly."""
+    for value in (2**31 - 1, -(2**31)):
+        payload = json.dumps({"sid": "sess-1", "line": value}).encode("utf-8")
+        cursor = base64.urlsafe_b64encode(payload).decode("ascii")
+        sid, line = decode_cursor(cursor)
+        assert sid == "sess-1"
+        assert line == value

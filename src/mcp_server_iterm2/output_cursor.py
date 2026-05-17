@@ -9,6 +9,8 @@ from dataclasses import dataclass
 from mcp_server_iterm2.errors import CursorInvalid as CursorInvalid  # re-export
 
 _MAX_CURSOR_LEN = 16384
+_MAX_LINE = 2**31 - 1  # iTerm2 protobuf int32 ceiling
+_MIN_LINE = -(2**31)  # iTerm2 protobuf int32 floor
 
 
 def encode_cursor(*, session_id: str, line_number: int) -> str:
@@ -28,6 +30,8 @@ def decode_cursor(cursor: str, *, expected_session_id: str | None = None) -> tup
         raise CursorInvalid(str(exc)) from exc
     if not isinstance(sid, str):
         raise CursorInvalid("cursor sid is not a string")
+    if line < _MIN_LINE or line > _MAX_LINE:
+        raise CursorInvalid(f"line number out of range: {line}")
     if expected_session_id is not None and sid != expected_session_id:
         raise CursorInvalid("cursor session_id mismatch")
     return sid, line
