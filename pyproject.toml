@@ -1,6 +1,6 @@
 [project]
 name = "mcp-server-iterm2"
-version = "0.1.0"
+version = "0.1.1"
 description = "MCP server exposing iTerm2 to agents for observation and non-destructive annotation."
 readme = "README.md"
 requires-python = ">=3.12"

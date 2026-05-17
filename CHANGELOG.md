@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-05-17
+
+### Fixed
+
+- Correct author email in package metadata. No functional changes; 0.1.0 is
+  yanked.
+
 ## [0.1.0] - 2026-05-16
 
 Initial release.
