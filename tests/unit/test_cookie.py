@@ -75,3 +75,16 @@ def test_request_cookie_passes_timeout(mock_run):
     mock_run.return_value = _fake_completed(stdout="abc\n")
     request_cookie()
     assert mock_run.call_args.kwargs.get("timeout") == 30.0
+
+
+@patch("mcp_server_iterm2.cookie.subprocess.run")
+def test_request_cookie_does_not_propagate_iterm2_cookie_to_child(mock_run):
+    mock_run.return_value = _fake_completed(stdout="abc\n")
+    env_override = {"ITERM2_COOKIE": "secret-xyz", "PATH": "/custom/path", "HOME": "/Users/test"}
+    with patch.dict("os.environ", env_override):
+        request_cookie()
+    env = mock_run.call_args.kwargs.get("env")
+    assert env is not None, "must pass explicit env="
+    assert "ITERM2_COOKIE" not in env, f"cookie leaked to child: {env}"
+    assert env.get("PATH") == "/custom/path", "PATH must be preserved"
+    assert env.get("HOME") == "/Users/test", "HOME must be preserved"

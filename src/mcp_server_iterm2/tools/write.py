@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 import subprocess
 from typing import Any
 
@@ -19,6 +20,19 @@ _MAX_VAR_NAME = 256
 _MAX_VAR_VALUE = 4096
 _MAX_NOTIFICATION_TITLE = 128
 _MAX_NOTIFICATION_BODY = 1024
+
+
+def _osascript_env() -> dict[str, str]:
+    """Minimal environment for osascript children — explicitly excludes ITERM2_COOKIE.
+
+    osascript needs PATH (for tools it shells out to) and HOME (for bundle
+    lookups). It does NOT need our cookie or other state, so we don't leak them
+    to a child process that has no business reading them.
+    """
+    return {
+        "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
+        "HOME": os.environ.get("HOME", "/"),
+    }
 
 
 def _check_length(field: str, value: str, limit: int) -> None:
@@ -130,6 +144,7 @@ async def post_notification_impl(*, title: str, body: str) -> dict[str, Any]:
             text=True,
             check=False,
             timeout=_NOTIFICATION_TIMEOUT_S,
+            env=_osascript_env(),
         )
     except subprocess.TimeoutExpired as exc:
         raise SubprocessTimeout(

@@ -215,6 +215,21 @@ async def test_post_notification_passes_timeout(mock_run):
 
 
 @patch("mcp_server_iterm2.tools.write.subprocess.run")
+async def test_post_notification_does_not_propagate_iterm2_cookie_to_child(mock_run):
+    mock_run.return_value = subprocess.CompletedProcess(
+        args=["/usr/bin/osascript"], returncode=0, stdout="", stderr=""
+    )
+    env_override = {"ITERM2_COOKIE": "secret-xyz", "PATH": "/custom/path", "HOME": "/Users/test"}
+    with patch.dict("os.environ", env_override):
+        await post_notification_impl(title="t", body="b")
+    env = mock_run.call_args.kwargs.get("env")
+    assert env is not None, "must pass explicit env="
+    assert "ITERM2_COOKIE" not in env, f"cookie leaked to child: {env}"
+    assert env.get("PATH") == "/custom/path"
+    assert env.get("HOME") == "/Users/test"
+
+
+@patch("mcp_server_iterm2.tools.write.subprocess.run")
 async def test_post_notification_runs_subprocess_off_event_loop(mock_run):
     import threading
 

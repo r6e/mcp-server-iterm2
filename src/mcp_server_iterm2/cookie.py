@@ -1,5 +1,6 @@
 """Request an iTerm2 API cookie via AppleScript."""
 
+import os
 import subprocess
 
 from mcp_server_iterm2.errors import APINotEnabled, AuthDenied, ITermNotRunning, SubprocessTimeout
@@ -10,6 +11,19 @@ _OSASCRIPT_COMMAND = [
     'tell application "iTerm2" to request cookie',
 ]
 _COOKIE_TIMEOUT_S = 30.0
+
+
+def _osascript_env() -> dict[str, str]:
+    """Minimal environment for osascript children — explicitly excludes ITERM2_COOKIE.
+
+    osascript needs PATH (for tools it shells out to) and HOME (for bundle
+    lookups). It does NOT need our cookie or other state, so we don't leak them
+    to a child process that has no business reading them.
+    """
+    return {
+        "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
+        "HOME": os.environ.get("HOME", "/"),
+    }
 
 
 def request_cookie() -> str:
@@ -28,6 +42,7 @@ def request_cookie() -> str:
             text=True,
             check=False,
             timeout=_COOKIE_TIMEOUT_S,
+            env=_osascript_env(),
         )
     except subprocess.TimeoutExpired as exc:
         raise SubprocessTimeout(what="requesting iTerm2 cookie", seconds=_COOKIE_TIMEOUT_S) from exc
