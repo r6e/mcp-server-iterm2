@@ -5,6 +5,7 @@ import pytest
 
 from mcp_server_iterm2.errors import Disconnected, SubprocessTimeout
 from mcp_server_iterm2.tools.write import (
+    _escape_applescript_string,
     post_notification_impl,
     set_badge_impl,
     set_tab_color_impl,
@@ -285,3 +286,57 @@ async def test_post_notification_rejects_long_title():
 async def test_post_notification_rejects_long_body():
     with pytest.raises(ValueError):
         await post_notification_impl(title="ok", body="x" * 1025)
+
+
+@pytest.mark.parametrize(
+    "raw,expected",
+    [
+        ("hello", "hello"),
+        ('say "hi"', r'say \"hi\"'),
+        ("a\\b", r"a\\b"),
+        ('\\"', r'\\\"'),
+        ("line1\nline2", r"line1\nline2"),
+        ("a\rb\tc", r"a\rb\tc"),
+        ('"; do shell script "rm -rf ~"; --', r'\"; do shell script \"rm -rf ~\"; --'),
+        ('\\\\"\\\\', r'\\\\\"\\\\'),
+        ("", ""),
+    ],
+    ids=[
+        "plain",
+        "double-quote",
+        "backslash",
+        "backslash-quote",
+        "newline",
+        "cr-tab",
+        "injection-attempt",
+        "mixed-backslash-quote",
+        "empty",
+    ],
+)
+def test_applescript_escape_handles_adversarial_payloads(raw, expected):
+    assert _escape_applescript_string(raw) == expected
+
+
+def test_applescript_escape_does_not_leave_unescaped_double_quote():
+    """No matter what input we throw at it, no naked " survives the escape."""
+    for ch in ('"', '""', '\\"', '"\\', '\n"', '\t"\n'):
+        escaped = _escape_applescript_string(ch)
+        for i, c in enumerate(escaped):
+            if c == '"':
+                assert i > 0 and escaped[i - 1] == "\\", (
+                    f"unescaped quote at index {i} in {escaped!r} (from raw {ch!r})"
+                )
+
+
+def test_applescript_escape_preserves_length_relationship_for_safe_chars():
+    """ASCII printable chars (except \\, ") pass through unchanged."""
+    safe = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 !#$%&'()*+,-./"
+    assert _escape_applescript_string(safe) == safe
+
+
+def test_applescript_escape_handles_unicode_bidi_and_smart_quotes():
+    """Unicode chars that *look* like quotes/backslashes but aren't (U+201C, U+201D, U+202E, U+202C, U+00AC)
+    must pass through unchanged — they cannot close the AppleScript string."""
+    raw = "Hello “world” ‮secret‬ ¬¬"
+    escaped = _escape_applescript_string(raw)
+    assert escaped == raw, "smart/bidi/special unicode must not be modified"

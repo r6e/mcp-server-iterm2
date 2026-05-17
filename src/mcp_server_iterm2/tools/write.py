@@ -26,6 +26,22 @@ def _check_length(field: str, value: str, limit: int) -> None:
         raise ValueError(f"{field} length {len(value)} exceeds limit {limit}")
 
 
+def _escape_applescript_string(s: str) -> str:
+    """Escape a Python string for safe embedding inside an AppleScript "..." literal.
+
+    Order matters: backslash MUST be doubled FIRST so subsequent escapes don't
+    get re-escaped. Then escape the closing-quote character and the three
+    AppleScript-recognised C-style control escapes.
+    """
+    return (
+        s.replace("\\", "\\\\")
+        .replace('"', '\\"')
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+        .replace("\t", "\\t")
+    )
+
+
 async def set_badge_impl(
     client: Any,
     *,
@@ -102,19 +118,10 @@ async def post_notification_impl(*, title: str, body: str) -> dict[str, Any]:
     _check_length("notification title", title, _MAX_NOTIFICATION_TITLE)
     _check_length("notification body", body, _MAX_NOTIFICATION_BODY)
 
-    # AppleScript string-literal escape (distinct from shell escaping):
-    # double the backslashes first, then escape embedded double quotes and
-    # control characters that would break the single-line string literal.
-    def _escape(s: str) -> str:
-        return (
-            s.replace("\\", "\\\\")
-            .replace('"', '\\"')
-            .replace("\n", "\\n")
-            .replace("\r", "\\r")
-            .replace("\t", "\\t")
-        )
-
-    script = f'display notification "{_escape(body)}" with title "{_escape(title)}"'
+    script = (
+        f'display notification "{_escape_applescript_string(body)}" '
+        f'with title "{_escape_applescript_string(title)}"'
+    )
     try:
         result = await asyncio.to_thread(
             subprocess.run,
