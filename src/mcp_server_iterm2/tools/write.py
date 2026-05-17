@@ -93,6 +93,12 @@ async def set_tab_color_impl(
     g: int,
     b: int,
 ) -> dict[str, Any]:
+    """Set the tab tint as RGB (each component 0-255).
+
+    Writes the legacy `Tab Color` plus both `Tab Color (Light)` and
+    `Tab Color (Dark)` so the change takes effect whether or not the
+    user has split light/dark profile colors enabled.
+    """
     for name, v in (("r", r), ("g", g), ("b", b)):
         if not (0 <= v <= 255):
             raise InvalidArgument(f"{name}={v} out of range; expected 0-255")
@@ -100,7 +106,11 @@ async def set_tab_color_impl(
     session = resolve_session(app, session_id_arg, env_session_id)
     profile = iterm2.LocalWriteOnlyProfile()
     profile.set_tab_color(iterm2.Color(r, g, b))
+    profile.set_tab_color_light(iterm2.Color(r, g, b))
+    profile.set_tab_color_dark(iterm2.Color(r, g, b))
     profile.set_use_tab_color(True)
+    profile.set_use_tab_color_light(True)
+    profile.set_use_tab_color_dark(True)
     await session.async_set_profile_properties(profile)
     return {"ok": True, "rgb": [r, g, b]}
 

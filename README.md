@@ -56,6 +56,7 @@ Every session-targeted tool accepts an optional `session_id`. If omitted, the se
 
 - **Badge:** for `set_badge` to display anything, your iTerm2 profile's badge format must include `\(user.badge)`. Configure in iTerm2 → Profiles → General → Badge.
 - **Title:** whether a `set_title` override sticks depends on the profile's "Allow terminal apps to change title" and "Title Components" settings. The server always sets the override; iTerm2 controls the rendering.
+- **Tab color:** `set_tab_color` writes the legacy tab color plus both light- and dark-mode variants, so the tint takes effect regardless of the profile's split-color preference.
 - **Notifications:** routed through macOS via `osascript`. Make sure Terminal/iTerm2 notifications are allowed in System Settings if banners don't appear.
 
 ## Excluded by design

@@ -55,7 +55,7 @@ async def test_set_title_propagates_disconnected():
 
 
 @patch("mcp_server_iterm2.tools.write.iterm2")
-async def test_set_tab_color_writes_profile_properties(mock_iterm2, simple_app):
+async def test_set_tab_color_writes_legacy_and_light_dark_variants(mock_iterm2, simple_app):
     client = MagicMock()
     client.require_app.return_value = simple_app
     session = simple_app.get_session_by_id("sess-1")
@@ -63,16 +63,33 @@ async def test_set_tab_color_writes_profile_properties(mock_iterm2, simple_app):
 
     fake_profile = MagicMock()
     mock_iterm2.LocalWriteOnlyProfile.return_value = fake_profile
-    fake_color = MagicMock()
-    mock_iterm2.Color.return_value = fake_color
+    color_instances = []
+
+    def _make_color(r, g, b):
+        c = MagicMock(name=f"color({r},{g},{b})")
+        color_instances.append(c)
+        return c
+
+    mock_iterm2.Color.side_effect = _make_color
 
     result = await set_tab_color_impl(
         client, session_id_arg="sess-1", env_session_id=None, r=255, g=128, b=64
     )
     assert result == {"ok": True, "rgb": [255, 128, 64]}
-    mock_iterm2.Color.assert_called_once_with(255, 128, 64)
-    fake_profile.set_tab_color.assert_called_once_with(fake_color)
+    # Three Color(255,128,64) instances: one per variant.
+    assert mock_iterm2.Color.call_args_list == [
+        ((255, 128, 64),),
+        ((255, 128, 64),),
+        ((255, 128, 64),),
+    ]
+    # All three color setters called.
+    assert fake_profile.set_tab_color.call_count == 1
+    assert fake_profile.set_tab_color_light.call_count == 1
+    assert fake_profile.set_tab_color_dark.call_count == 1
+    # All three "use tab color" toggles set to True.
     fake_profile.set_use_tab_color.assert_called_once_with(True)
+    fake_profile.set_use_tab_color_light.assert_called_once_with(True)
+    fake_profile.set_use_tab_color_dark.assert_called_once_with(True)
     session.async_set_profile_properties.assert_awaited_once_with(fake_profile)
 
 
