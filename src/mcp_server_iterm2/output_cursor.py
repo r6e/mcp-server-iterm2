@@ -52,6 +52,10 @@ def diff_since(*, overflow: int, line_count: int, last_seen: int | None) -> Diff
 
     iTerm2 line numbering is monotonically increasing. The currently
     addressable range is [overflow, overflow + line_count - 1].
+
+    A `last_seen` value below zero is treated as "no prior cursor" rather
+    than "cursor expired". This handles the case where the caller's prior
+    fetch happened on an empty session (encoded as line_number=-1).
     """
     if line_count == 0:
         return DiffResult(None, None, -1, False)
@@ -59,7 +63,7 @@ def diff_since(*, overflow: int, line_count: int, last_seen: int | None) -> Diff
     highest = overflow + line_count - 1
     lowest = overflow
 
-    if last_seen is None:
+    if last_seen is None or last_seen < 0:
         return DiffResult(lowest, highest, highest, False)
 
     if last_seen < lowest:

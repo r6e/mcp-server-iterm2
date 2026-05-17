@@ -99,6 +99,16 @@ def test_decode_cursor_rejects_line_below_min():
         decode_cursor(cursor)
 
 
+def test_diff_since_negative_last_seen_is_treated_as_fresh_not_expired():
+    """Cursor from a previously-empty session encodes line_number=-1.
+    A later call with that cursor must report cursor_expired=False."""
+    result = diff_since(overflow=0, line_count=10, last_seen=-1)
+    assert result.first_line == 0
+    assert result.last_line == 9
+    assert result.cursor_expired is False
+    assert result.new_last_seen == 9
+
+
 def test_decode_cursor_accepts_boundary_line_values():
     """The bounds are inclusive: 2**31 - 1 and -2**31 must both decode cleanly."""
     for value in (2**31 - 1, -(2**31)):
