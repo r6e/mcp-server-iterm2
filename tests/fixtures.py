@@ -54,8 +54,12 @@ def make_app(
     current_window: MagicMock | None = None,
 ) -> MagicMock:
     app = MagicMock(name="app")
+    chosen_current = current_window or (windows[0] if windows else None)
+    app.windows = windows
+    app.current_window = chosen_current
+    # Back-compat aliases so any caller still using the deprecated names sees the same data.
     app.terminal_windows = windows
-    app.current_terminal_window = current_window or (windows[0] if windows else None)
+    app.current_terminal_window = chosen_current
 
     sessions_by_id = {s.session_id: s for w in windows for t in w.tabs for s in t.sessions}
     app.get_session_by_id = lambda sid: sessions_by_id.get(sid)

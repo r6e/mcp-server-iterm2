@@ -27,11 +27,11 @@ _MAX_VAR_NAME = 256
 def list_sessions_impl(client: Any) -> dict[str, Any]:
     """Return the windows → tabs → sessions hierarchy."""
     app = client.require_app()
-    current_window = app.current_terminal_window
+    current_window = app.current_window
     current_window_id = getattr(current_window, "window_id", None)
 
     out_windows = []
-    for window in app.terminal_windows:
+    for window in app.windows:
         current_tab = window.current_tab
         current_tab_id = getattr(current_tab, "tab_id", None)
         out_tabs = []
