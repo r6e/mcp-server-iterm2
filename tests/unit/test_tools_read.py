@@ -80,6 +80,30 @@ async def test_get_session_info_returns_expected_fields(simple_app):
     }
 
 
+async def test_get_session_info_buried_session_returns_null_dimensions(simple_app):
+    """Buried sessions have grid_size=None; we must not crash on dimensions access."""
+    client = MagicMock()
+    client.require_app.return_value = simple_app
+    from tests.fixtures import make_session
+
+    buried = make_session(session_id="sess-buried", name="zsh", buried=True)
+    simple_app.get_session_by_id = lambda sid: buried if sid == "sess-buried" else None
+    buried.async_get_variable = AsyncMock(
+        side_effect=lambda key: {
+            "session.path": "/Users/rob",
+            "user.badge": "",
+            "session.tty": "",
+        }.get(key)
+    )
+    profile = MagicMock()
+    profile.name = "Default"
+    buried.async_get_profile = AsyncMock(return_value=profile)
+
+    result = await get_session_info_impl(client, session_id_arg="sess-buried", env_session_id=None)
+    assert result["dimensions"] is None
+    assert result["session_id"] == "sess-buried"
+
+
 async def test_get_screen_contents_returns_lines_and_cursor(simple_app):
     client = MagicMock()
     client.require_app.return_value = simple_app

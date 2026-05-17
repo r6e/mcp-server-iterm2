@@ -9,10 +9,14 @@ def make_session(
     *,
     session_id: str,
     name: str = "session",
+    buried: bool = False,
 ) -> MagicMock:
     s = MagicMock(name=f"session-{session_id}")
     s.session_id = session_id
     s.name = name
+    s.buried = buried
+    if buried:
+        s.grid_size = None
     return s
 
 

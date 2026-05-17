@@ -63,7 +63,10 @@ def list_sessions_impl(client: Any) -> dict[str, Any]:
 async def get_session_info_impl(
     client: Any, *, session_id_arg: str | None, env_session_id: str | None
 ) -> dict[str, Any]:
-    """Return session metadata: title, working dir, profile, badge, dimensions, TTY."""
+    """Return session metadata: title, working dir, profile, badge, dimensions, TTY.
+
+    Buried sessions have no grid; `dimensions` is None in that case.
+    """
     app = client.require_app()
     session = resolve_session(app, session_id_arg, env_session_id)
     grid = session.grid_size
@@ -73,6 +76,7 @@ async def get_session_info_impl(
         session.async_get_variable("user.badge"),
         session.async_get_variable("session.tty"),
     )
+    dimensions = {"cols": grid.width, "rows": grid.height} if grid is not None else None
     return {
         "session_id": session.session_id,
         "name": session.name,
@@ -80,7 +84,7 @@ async def get_session_info_impl(
         "profile_name": profile.name,
         "badge": badge,
         "tty": tty,
-        "dimensions": {"cols": grid.width, "rows": grid.height},
+        "dimensions": dimensions,
     }
 
 
