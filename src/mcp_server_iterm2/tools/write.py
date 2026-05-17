@@ -113,10 +113,12 @@ async def set_user_variable_impl(
     name: str,
     value: str,
 ) -> dict[str, Any]:
-    if not name.startswith("user."):
-        raise InvalidArgument(f"variable name must start with 'user.' (got {name!r})")
+    # Length check first so an oversize name doesn't get reflected back through
+    # the prefix-violation error message.
     _check_length("variable name", name, _MAX_VAR_NAME)
     _check_length("variable value", value, _MAX_VAR_VALUE)
+    if not name.startswith("user."):
+        raise InvalidArgument(f"variable name must start with 'user.' (got {name!r})")
     app = client.require_app()
     session = resolve_session(app, session_id_arg, env_session_id)
     await session.async_set_variable(name, value)

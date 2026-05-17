@@ -288,6 +288,24 @@ async def test_set_user_variable_rejects_name_over_limit(simple_app):
         )
 
 
+async def test_set_user_variable_length_check_runs_before_prefix_check(simple_app):
+    """Oversize names must hit the bounded length error, not echo into the prefix message."""
+    client = MagicMock()
+    client.require_app.return_value = simple_app
+    huge = "z" * 10_000  # no "user." prefix; bigger than _MAX_VAR_NAME
+    with pytest.raises(InvalidArgument) as exc_info:
+        await set_user_variable_impl(
+            client,
+            session_id_arg="sess-1",
+            env_session_id=None,
+            name=huge,
+            value="ok",
+        )
+    msg = str(exc_info.value)
+    assert "exceeds limit" in msg, f"expected length-bound error, got: {msg!r}"
+    assert huge not in msg, "10KB name must not be reflected back to the caller"
+
+
 async def test_post_notification_rejects_long_title():
     with pytest.raises(InvalidArgument):
         await post_notification_impl(title="x" * 129, body="ok")
