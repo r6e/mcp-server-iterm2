@@ -63,6 +63,30 @@ Every session-targeted tool accepts an optional `session_id`. If omitted, the se
 
 For safety, these are not exposed: `send_text`/keystroke injection, closing or spawning sessions/tabs/windows, splitting panes, focus changes, broadcasting input.
 
+## Security model
+
+Installing this server gives any MCP client that uses it broad read access to your iTerm2 sessions (screen contents, scrollback, working directories, variables) and limited write access (badge, title, tab color, `user.*` variables, macOS notifications). Read tools can capture passwords visible on screen; write tools can spoof titles and notifications. The full threat model and reporting flow live in [SECURITY.md](SECURITY.md).
+
+## Development
+
+```bash
+uv sync
+uv run pytest tests/unit       # 122 unit tests
+uv run ruff check .            # lint
+uv run ruff format --check .   # format check
+uv run ty check src            # type check
+```
+
+Integration tests (`pytest -m integration`) and the smoke script (`scripts/smoke.py`) require running inside an iTerm2 session. See [CONTRIBUTING.md](CONTRIBUTING.md) for the full development guide and [ARCHITECTURE.md](ARCHITECTURE.md) for how the pieces fit together.
+
+## Documentation
+
+- [ARCHITECTURE.md](ARCHITECTURE.md) — module layout, lifecycle, data flow
+- [CONTRIBUTING.md](CONTRIBUTING.md) — dev setup, quality gates, PR process
+- [SECURITY.md](SECURITY.md) — threat model and how to report a vulnerability
+- [CHANGELOG.md](CHANGELOG.md) — version history
+- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) — community standards
+
 ## License
 
-MIT.
+MIT — see [LICENSE](LICENSE).

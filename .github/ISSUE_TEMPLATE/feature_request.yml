@@ -1,0 +1,50 @@
+name: Feature request
+description: Suggest a new tool, capability, or improvement
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the suggestion. The server is intentionally scoped to **observation and non-destructive annotation** — destructive operations (keystroke injection, closing sessions, focus changes) are excluded by design. Please confirm your request fits that scope or explain why an exception is warranted.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem you're trying to solve
+      description: What can't you do today? What's the use case?
+      placeholder: When my agent runs a long task, I want it to surface progress via a per-window status indicator. I can use `set_badge` per session but I want one per window.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What new tool, argument, or behavior would solve it? Be specific about the surface area.
+      placeholder: Add a `set_window_status_bar_value(text, window_id)` tool that writes to iTerm2's `user.windowStatusBar` variable on the containing window.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: What workarounds have you tried? What other approaches did you consider?
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Does this fit the non-destructive scope?
+      description: See the "Excluded by design" section of the README.
+      options:
+        - "Yes — it's read-only or non-destructive annotation"
+        - "Borderline — I want to discuss whether it crosses the line"
+        - "No — but I think it's worth an exception (explain below)"
+    validations:
+      required: true
+
+  - type: textarea
+    id: security
+    attributes:
+      label: Security implications
+      description: Could this be used by a malicious agent to deceive or damage the user? Reference SECURITY.md if needed.

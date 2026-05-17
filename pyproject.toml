@@ -23,9 +23,9 @@ dependencies = ["mcp>=1.12", "iterm2>=2.7"]
 mcp-server-iterm2 = "mcp_server_iterm2.server:main"
 
 [project.urls]
-Homepage = "https://github.com/rtrame/mcp-server-iterm2"
-Repository = "https://github.com/rtrame/mcp-server-iterm2"
-Issues = "https://github.com/rtrame/mcp-server-iterm2/issues"
+Homepage = "https://github.com/r6e/mcp-server-iterm2"
+Repository = "https://github.com/r6e/mcp-server-iterm2"
+Issues = "https://github.com/r6e/mcp-server-iterm2/issues"
 
 [build-system]
 requires = ["uv_build>=0.11.14,<0.12"]
