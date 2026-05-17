@@ -1,5 +1,9 @@
 # mcp-server-iterm2
 
+[![CI](https://github.com/r6e/mcp-server-iterm2/actions/workflows/ci.yml/badge.svg)](https://github.com/r6e/mcp-server-iterm2/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/mcp-server-iterm2.svg)](https://pypi.org/project/mcp-server-iterm2/)
+[![Python](https://img.shields.io/pypi/pyversions/mcp-server-iterm2.svg)](https://pypi.org/project/mcp-server-iterm2/)
+
 A Model Context Protocol (MCP) server that exposes iTerm2 to agents for **observation** and **non-destructive annotation**. Agents can inspect sessions and decorate them (badge, title, tab color, user variables, notifications) but cannot inject keystrokes, close or spawn sessions, or otherwise alter the user's working environment.
 
 ## Install
@@ -78,6 +82,23 @@ uv run ty check src            # type check
 ```
 
 Integration tests (`pytest -m integration`) and the smoke script (`scripts/smoke.py`) require running inside an iTerm2 session. See [CONTRIBUTING.md](CONTRIBUTING.md) for the full development guide and [ARCHITECTURE.md](ARCHITECTURE.md) for how the pieces fit together.
+
+## API stability
+
+This project follows [semantic versioning](https://semver.org/). The current release is in the `0.x` series; expect schema refinements between minor versions as the tool surface settles in response to real-world feedback. Pin to a specific version in production.
+
+From `1.0` onward the following will be part of the stable contract — breaking any of them requires a major bump:
+
+- **Tool names and the set of tools.** Names and removal of tools are stable; new tools may be added in minor releases.
+- **Tool argument names and types.** New optional arguments may be added; existing argument names, types, and required-ness do not change.
+- **Top-level response keys and value types.** New keys may be added in minor releases; existing keys and their types do not change.
+- **Error envelope shape.** `MCPIterm2Error` subclasses surface actionable text via `to_error_text`; unknown exceptions collapse to `Internal error: <ExceptionClass>`. Callers may pattern-match on this envelope.
+
+Not part of the stable surface:
+
+- Internal Python modules (`server.py`, `connection.py`, `tools/*`, `errors.py`, `output_cursor.py`) — these are implementation details.
+- Specific cursor payload encoding for `get_recent_output`. Treat the cursor as opaque; pass back whatever the server returned.
+- iTerm2 SDK and macOS version compatibility windows — these follow upstream and may change in minor releases.
 
 ## Documentation
 
