@@ -2,6 +2,7 @@ from mcp_server_iterm2.errors import (
     APINotEnabled,
     AuthDenied,
     Disconnected,
+    InvalidArgument,
     ITermNotRunning,
     NoCurrentSession,
     SessionNotFound,
@@ -48,6 +49,11 @@ def test_session_not_found_message():
 def test_subprocess_timeout_message():
     err = SubprocessTimeout(what="requesting iTerm2 cookie", seconds=30.0)
     assert to_error_text(err) == ("osascript timed out after 30s while requesting iTerm2 cookie.")
+
+
+def test_invalid_argument_message():
+    err = InvalidArgument("badge text length 257 exceeds limit 256")
+    assert to_error_text(err) == "badge text length 257 exceeds limit 256"
 
 
 def test_unknown_exception_falls_through_as_internal_error():

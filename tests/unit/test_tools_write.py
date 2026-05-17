@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from mcp_server_iterm2.errors import Disconnected, SubprocessTimeout
+from mcp_server_iterm2.errors import Disconnected, InvalidArgument, SubprocessTimeout
 from mcp_server_iterm2.tools.write import (
     _escape_applescript_string,
     post_notification_impl,
@@ -79,7 +79,7 @@ async def test_set_tab_color_writes_profile_properties(mock_iterm2, simple_app):
 async def test_set_tab_color_rejects_out_of_range_values(simple_app):
     client = MagicMock()
     client.require_app.return_value = simple_app
-    with pytest.raises(ValueError):
+    with pytest.raises(InvalidArgument):
         await set_tab_color_impl(
             client, session_id_arg="sess-1", env_session_id=None, r=300, g=0, b=0
         )
@@ -114,7 +114,7 @@ async def test_set_user_variable_writes(simple_app):
 async def test_set_user_variable_rejects_non_user_prefix(simple_app):
     client = MagicMock()
     client.require_app.return_value = simple_app
-    with pytest.raises(ValueError):
+    with pytest.raises(InvalidArgument):
         await set_user_variable_impl(
             client,
             session_id_arg="sess-1",
@@ -236,21 +236,21 @@ async def test_post_notification_runs_subprocess_off_event_loop(mock_run):
 async def test_set_badge_rejects_text_over_limit(simple_app):
     client = MagicMock()
     client.require_app.return_value = simple_app
-    with pytest.raises(ValueError):
+    with pytest.raises(InvalidArgument):
         await set_badge_impl(client, session_id_arg="sess-1", env_session_id=None, text="x" * 257)
 
 
 async def test_set_title_rejects_title_over_limit(simple_app):
     client = MagicMock()
     client.require_app.return_value = simple_app
-    with pytest.raises(ValueError):
+    with pytest.raises(InvalidArgument):
         await set_title_impl(client, session_id_arg="sess-1", env_session_id=None, title="x" * 257)
 
 
 async def test_set_user_variable_rejects_value_over_limit(simple_app):
     client = MagicMock()
     client.require_app.return_value = simple_app
-    with pytest.raises(ValueError):
+    with pytest.raises(InvalidArgument):
         await set_user_variable_impl(
             client,
             session_id_arg="sess-1",
@@ -263,7 +263,7 @@ async def test_set_user_variable_rejects_value_over_limit(simple_app):
 async def test_set_user_variable_rejects_name_over_limit(simple_app):
     client = MagicMock()
     client.require_app.return_value = simple_app
-    with pytest.raises(ValueError):
+    with pytest.raises(InvalidArgument):
         await set_user_variable_impl(
             client,
             session_id_arg="sess-1",
@@ -274,12 +274,12 @@ async def test_set_user_variable_rejects_name_over_limit(simple_app):
 
 
 async def test_post_notification_rejects_long_title():
-    with pytest.raises(ValueError):
+    with pytest.raises(InvalidArgument):
         await post_notification_impl(title="x" * 129, body="ok")
 
 
 async def test_post_notification_rejects_long_body():
-    with pytest.raises(ValueError):
+    with pytest.raises(InvalidArgument):
         await post_notification_impl(title="ok", body="x" * 1025)
 
 

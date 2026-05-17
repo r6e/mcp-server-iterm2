@@ -58,3 +58,23 @@ def test_create_server_wraps_unknown_exceptions_as_generic_internal_error():
     assert "0xdeadbeef" not in msg
     # But it should clearly indicate an internal error occurred.
     assert "Internal error" in msg
+
+
+async def test_create_server_surfaces_invalid_argument_detail_to_agent():
+    """InvalidArgument errors must reach the agent with the actual message intact."""
+    client = MagicMock()
+    app = MagicMock()
+    session = MagicMock()
+    session.session_id = "sess-1"
+    app.get_session_by_id = MagicMock(return_value=session)
+    client.require_app.return_value = app
+
+    mcp = create_server(client=client)
+    tool = mcp._tool_manager.get_tool("set_badge")
+    with pytest.raises(RuntimeError) as exc_info:
+        await tool.fn(text="x" * 1000, session_id="sess-1")
+    msg = str(exc_info.value)
+    # Detail must survive the wrapper.
+    assert "badge text length 1000 exceeds limit 256" in msg
+    # And it must NOT be the generic Internal error envelope.
+    assert "Internal error" not in msg

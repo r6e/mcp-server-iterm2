@@ -2,7 +2,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from mcp_server_iterm2.errors import Disconnected, ScopeUnavailable
+from mcp_server_iterm2.errors import Disconnected, InvalidArgument, ScopeUnavailable
 from mcp_server_iterm2.output_cursor import decode_cursor, encode_cursor
 from mcp_server_iterm2.server import create_server
 from mcp_server_iterm2.tools.read import (
@@ -411,7 +411,7 @@ async def test_get_variable_window_scope_raises_when_no_window_for_tab(simple_ap
 async def test_get_variable_rejects_long_name(simple_app):
     client = MagicMock()
     client.require_app.return_value = simple_app
-    with pytest.raises(ValueError):
+    with pytest.raises(InvalidArgument):
         await get_variable_impl(
             client,
             session_id_arg="sess-1",

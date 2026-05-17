@@ -8,7 +8,7 @@ from typing import Any
 
 import iterm2  # type: ignore[import-untyped]
 
-from mcp_server_iterm2.errors import SubprocessTimeout
+from mcp_server_iterm2.errors import InvalidArgument, SubprocessTimeout
 from mcp_server_iterm2.session import resolve_session
 
 _NOTIFICATION_TIMEOUT_S = 5.0
@@ -23,7 +23,7 @@ _MAX_NOTIFICATION_BODY = 1024
 
 def _check_length(field: str, value: str, limit: int) -> None:
     if len(value) > limit:
-        raise ValueError(f"{field} length {len(value)} exceeds limit {limit}")
+        raise InvalidArgument(f"{field} length {len(value)} exceeds limit {limit}")
 
 
 def _escape_applescript_string(s: str) -> str:
@@ -81,7 +81,7 @@ async def set_tab_color_impl(
 ) -> dict[str, Any]:
     for name, v in (("r", r), ("g", g), ("b", b)):
         if not (0 <= v <= 255):
-            raise ValueError(f"{name}={v} out of range; expected 0-255")
+            raise InvalidArgument(f"{name}={v} out of range; expected 0-255")
     app = client.require_app()
     session = resolve_session(app, session_id_arg, env_session_id)
     profile = iterm2.LocalWriteOnlyProfile()
@@ -100,7 +100,7 @@ async def set_user_variable_impl(
     value: str,
 ) -> dict[str, Any]:
     if not name.startswith("user."):
-        raise ValueError(f"variable name must start with 'user.' (got {name!r})")
+        raise InvalidArgument(f"variable name must start with 'user.' (got {name!r})")
     _check_length("variable name", name, _MAX_VAR_NAME)
     _check_length("variable value", value, _MAX_VAR_VALUE)
     app = client.require_app()

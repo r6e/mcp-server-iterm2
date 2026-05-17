@@ -30,6 +30,14 @@ class SubprocessTimeout(MCPIterm2Error):
         self.seconds = seconds
 
 
+class InvalidArgument(MCPIterm2Error):
+    """A tool argument failed validation at the boundary (length, range, prefix, etc.)."""
+
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+        self.message = message
+
+
 class NoCurrentSession(MCPIterm2Error):
     """No session_id provided and ITERM_SESSION_ID is not set."""
 
@@ -84,5 +92,7 @@ def to_error_text(err: BaseException) -> str:
             return "Invalid cursor. Pass null to start from scratch."
         case ScopeUnavailable() as e:
             return f"Cannot read variable: containing {e.scope} is unavailable for this session."
+        case InvalidArgument() as e:
+            return e.message
         case _:
             return f"Internal error: {err}"

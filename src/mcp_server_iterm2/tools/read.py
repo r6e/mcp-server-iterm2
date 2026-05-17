@@ -12,7 +12,7 @@ from typing import Any
 
 import iterm2  # type: ignore[import-untyped]
 
-from mcp_server_iterm2.errors import ScopeUnavailable
+from mcp_server_iterm2.errors import InvalidArgument, ScopeUnavailable
 from mcp_server_iterm2.output_cursor import (
     decode_cursor,
     diff_since,
@@ -191,7 +191,7 @@ async def get_variable_impl(
 ) -> dict[str, Any]:
     """Read an iTerm2 variable by fully-qualified name, routing by scope prefix."""
     if len(name) > _MAX_VAR_NAME:
-        raise ValueError(f"variable name length {len(name)} exceeds limit {_MAX_VAR_NAME}")
+        raise InvalidArgument(f"variable name length {len(name)} exceeds limit {_MAX_VAR_NAME}")
     app = client.require_app()
     session = resolve_session(app, session_id_arg, env_session_id)
     if name.startswith("tab."):
