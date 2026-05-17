@@ -217,13 +217,12 @@ async def test_post_notification_passes_timeout(mock_run):
 @patch("mcp_server_iterm2.tools.write.subprocess.run")
 async def test_post_notification_runs_subprocess_off_event_loop(mock_run):
     import threading
+
     called_threads = []
 
     def _capture_thread(*args, **kwargs):
         called_threads.append(threading.current_thread())
-        return subprocess.CompletedProcess(
-            args=args[0], returncode=0, stdout="", stderr=""
-        )
+        return subprocess.CompletedProcess(args=args[0], returncode=0, stdout="", stderr="")
 
     mock_run.side_effect = _capture_thread
 
@@ -238,18 +237,14 @@ async def test_set_badge_rejects_text_over_limit(simple_app):
     client = MagicMock()
     client.require_app.return_value = simple_app
     with pytest.raises(ValueError):
-        await set_badge_impl(
-            client, session_id_arg="sess-1", env_session_id=None, text="x" * 257
-        )
+        await set_badge_impl(client, session_id_arg="sess-1", env_session_id=None, text="x" * 257)
 
 
 async def test_set_title_rejects_title_over_limit(simple_app):
     client = MagicMock()
     client.require_app.return_value = simple_app
     with pytest.raises(ValueError):
-        await set_title_impl(
-            client, session_id_arg="sess-1", env_session_id=None, title="x" * 257
-        )
+        await set_title_impl(client, session_id_arg="sess-1", env_session_id=None, title="x" * 257)
 
 
 async def test_set_user_variable_rejects_value_over_limit(simple_app):
@@ -292,13 +287,13 @@ async def test_post_notification_rejects_long_body():
     "raw,expected",
     [
         ("hello", "hello"),
-        ('say "hi"', r'say \"hi\"'),
+        ('say "hi"', r"say \"hi\""),
         ("a\\b", r"a\\b"),
-        ('\\"', r'\\\"'),
+        ('\\"', r"\\\""),
         ("line1\nline2", r"line1\nline2"),
         ("a\rb\tc", r"a\rb\tc"),
-        ('"; do shell script "rm -rf ~"; --', r'\"; do shell script \"rm -rf ~\"; --'),
-        ('\\\\"\\\\', r'\\\\\"\\\\'),
+        ('"; do shell script "rm -rf ~"; --', r"\"; do shell script \"rm -rf ~\"; --"),
+        ('\\\\"\\\\', r"\\\\\"\\\\"),
         ("", ""),
     ],
     ids=[
@@ -335,8 +330,10 @@ def test_applescript_escape_preserves_length_relationship_for_safe_chars():
 
 
 def test_applescript_escape_handles_unicode_bidi_and_smart_quotes():
-    """Unicode chars that *look* like quotes/backslashes but aren't (U+201C, U+201D, U+202E, U+202C, U+00AC)
-    must pass through unchanged — they cannot close the AppleScript string."""
+    """Unicode look-alikes (U+201C, U+201D, U+202E, U+202C, U+00AC) must pass through unchanged.
+
+    They cannot close an AppleScript string, so escaping them would corrupt output.
+    """
     raw = "Hello “world” ‮secret‬ ¬¬"
     escaped = _escape_applescript_string(raw)
     assert escaped == raw, "smart/bidi/special unicode must not be modified"

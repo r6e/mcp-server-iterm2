@@ -47,9 +47,7 @@ def test_session_not_found_message():
 
 def test_subprocess_timeout_message():
     err = SubprocessTimeout(what="requesting iTerm2 cookie", seconds=30.0)
-    assert to_error_text(err) == (
-        "osascript timed out after 30s while requesting iTerm2 cookie."
-    )
+    assert to_error_text(err) == ("osascript timed out after 30s while requesting iTerm2 cookie.")
 
 
 def test_unknown_exception_falls_through_as_internal_error():

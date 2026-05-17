@@ -127,9 +127,7 @@ async def test_connect_once_does_not_block_event_loop(mock_iterm2, monkeypatch):
         called_off_main["flag"] = threading.current_thread() is not threading.main_thread()
         return "cookie-xyz"
 
-    monkeypatch.setattr(
-        "mcp_server_iterm2.connection.request_cookie", blocking_request_cookie
-    )
+    monkeypatch.setattr("mcp_server_iterm2.connection.request_cookie", blocking_request_cookie)
     mock_iterm2.Connection.async_create = AsyncMock(return_value=MagicMock())
     mock_iterm2.async_get_app = AsyncMock(return_value=MagicMock())
 

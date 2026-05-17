@@ -30,9 +30,7 @@ def request_cookie() -> str:
             timeout=_COOKIE_TIMEOUT_S,
         )
     except subprocess.TimeoutExpired as exc:
-        raise SubprocessTimeout(
-            what="requesting iTerm2 cookie", seconds=_COOKIE_TIMEOUT_S
-        ) from exc
+        raise SubprocessTimeout(what="requesting iTerm2 cookie", seconds=_COOKIE_TIMEOUT_S) from exc
 
     if result.returncode == 0:
         return result.stdout.strip()

@@ -51,7 +51,7 @@ def create_server(*, client: Any) -> FastMCP:
         """List all windows, tabs, and sessions iTerm2 currently has open."""
         try:
             return read_tools.list_sessions_impl(client)
-        except Exception as e:  # noqa: BLE001 — intentional broad catch at tool boundary
+        except Exception as e:  # intentional broad catch at tool boundary
             raise _to_tool_error(e) from e
 
     @mcp.tool()
@@ -63,7 +63,7 @@ def create_server(*, client: Any) -> FastMCP:
                 session_id_arg=session_id,
                 env_session_id=_env_session_id(),
             )
-        except Exception as e:  # noqa: BLE001 — intentional broad catch at tool boundary
+        except Exception as e:  # intentional broad catch at tool boundary
             raise _to_tool_error(e) from e
 
     @mcp.tool()
@@ -75,7 +75,7 @@ def create_server(*, client: Any) -> FastMCP:
                 session_id_arg=session_id,
                 env_session_id=_env_session_id(),
             )
-        except Exception as e:  # noqa: BLE001 — intentional broad catch at tool boundary
+        except Exception as e:  # intentional broad catch at tool boundary
             raise _to_tool_error(e) from e
 
     @mcp.tool()
@@ -87,7 +87,7 @@ def create_server(*, client: Any) -> FastMCP:
                 session_id_arg=session_id,
                 env_session_id=_env_session_id(),
             )
-        except Exception as e:  # noqa: BLE001 — intentional broad catch at tool boundary
+        except Exception as e:  # intentional broad catch at tool boundary
             raise _to_tool_error(e) from e
 
     @mcp.tool()
@@ -100,7 +100,7 @@ def create_server(*, client: Any) -> FastMCP:
                 env_session_id=_env_session_id(),
                 n_lines=n_lines,
             )
-        except Exception as e:  # noqa: BLE001 — intentional broad catch at tool boundary
+        except Exception as e:  # intentional broad catch at tool boundary
             raise _to_tool_error(e) from e
 
     @mcp.tool()
@@ -115,7 +115,7 @@ def create_server(*, client: Any) -> FastMCP:
                 env_session_id=_env_session_id(),
                 cursor=cursor,
             )
-        except Exception as e:  # noqa: BLE001 — intentional broad catch at tool boundary
+        except Exception as e:  # intentional broad catch at tool boundary
             raise _to_tool_error(e) from e
 
     @mcp.tool()
@@ -131,7 +131,7 @@ def create_server(*, client: Any) -> FastMCP:
                 env_session_id=_env_session_id(),
                 name=name,
             )
-        except Exception as e:  # noqa: BLE001 — intentional broad catch at tool boundary
+        except Exception as e:  # intentional broad catch at tool boundary
             raise _to_tool_error(e) from e
 
     @mcp.tool()
@@ -139,7 +139,7 @@ def create_server(*, client: Any) -> FastMCP:
         """List available iTerm2 profiles by name and GUID."""
         try:
             return await read_tools.list_profiles_impl(client)
-        except Exception as e:  # noqa: BLE001 — intentional broad catch at tool boundary
+        except Exception as e:  # intentional broad catch at tool boundary
             raise _to_tool_error(e) from e
 
     @mcp.tool()
@@ -152,7 +152,7 @@ def create_server(*, client: Any) -> FastMCP:
                 env_session_id=_env_session_id(),
                 text=text,
             )
-        except Exception as e:  # noqa: BLE001 — intentional broad catch at tool boundary
+        except Exception as e:  # intentional broad catch at tool boundary
             raise _to_tool_error(e) from e
 
     @mcp.tool()
@@ -165,7 +165,7 @@ def create_server(*, client: Any) -> FastMCP:
                 env_session_id=_env_session_id(),
                 title=title,
             )
-        except Exception as e:  # noqa: BLE001 — intentional broad catch at tool boundary
+        except Exception as e:  # intentional broad catch at tool boundary
             raise _to_tool_error(e) from e
 
     @mcp.tool()
@@ -182,7 +182,7 @@ def create_server(*, client: Any) -> FastMCP:
                 g=g,
                 b=b,
             )
-        except Exception as e:  # noqa: BLE001 — intentional broad catch at tool boundary
+        except Exception as e:  # intentional broad catch at tool boundary
             raise _to_tool_error(e) from e
 
     @mcp.tool()
@@ -198,7 +198,7 @@ def create_server(*, client: Any) -> FastMCP:
                 name=name,
                 value=value,
             )
-        except Exception as e:  # noqa: BLE001 — intentional broad catch at tool boundary
+        except Exception as e:  # intentional broad catch at tool boundary
             raise _to_tool_error(e) from e
 
     @mcp.tool()
@@ -206,7 +206,7 @@ def create_server(*, client: Any) -> FastMCP:
         """Post a macOS notification (banner) with the given title and body."""
         try:
             return await write_tools.post_notification_impl(title=title, body=body)
-        except Exception as e:  # noqa: BLE001 — intentional broad catch at tool boundary
+        except Exception as e:  # intentional broad catch at tool boundary
             raise _to_tool_error(e) from e
 
     return mcp

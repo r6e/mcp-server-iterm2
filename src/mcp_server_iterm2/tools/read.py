@@ -172,7 +172,7 @@ async def get_recent_output_impl(
             "cursor_expired": diff.cursor_expired,
         }
 
-    assert diff.last_line is not None  # invariant: first_line and last_line are both set
+    assert diff.last_line is not None  # invariant: diff_since sets last_line when first_line is set
     count = diff.last_line - diff.first_line + 1
     line_contents = await session.async_get_contents(diff.first_line, count)
     return {

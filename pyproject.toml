@@ -47,10 +47,16 @@ line-length = 100
 target-version = "py312"
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I", "N", "UP", "B", "SIM", "RUF"]
+select = ["E", "F", "W", "I", "N", "UP", "B", "SIM", "RUF", "S"]
 # N818: error-class naming is intentional (see design spec).
 # RUF001: cookie.py literally matches iTerm2's right-single-quotation-mark error text.
-ignore = ["N818", "RUF001"]
+# S101: pytest tests use `assert` by design.
+# S603: subprocess calls use list argv with shell=False — false positive for our usage.
+ignore = ["N818", "RUF001", "S101", "S603"]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests construct fakes with strings that look like credentials; not a security concern.
+"tests/**/*.py" = ["S106", "S105"]
 
 [tool.ruff.format]
 quote-style = "double"
