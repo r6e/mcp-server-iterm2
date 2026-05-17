@@ -444,6 +444,72 @@ async def test_get_variable_rejects_long_name(simple_app):
         )
 
 
+async def test_get_scrollback_wraps_line_info_and_contents_in_transaction(simple_app, monkeypatch):
+    """The SDK requires line_info + get_contents to run inside a Transaction."""
+    client = MagicMock()
+    client.require_app.return_value = simple_app
+    client.require_connection.return_value = "<conn>"
+    session = simple_app.get_session_by_id("sess-1")
+
+    enter_calls = []
+    exit_calls = []
+
+    class _TrackedTransaction:
+        def __init__(self, conn):
+            self.conn = conn
+
+        async def __aenter__(self):
+            enter_calls.append(self.conn)
+            return self
+
+        async def __aexit__(self, *exc):
+            exit_calls.append(self.conn)
+            return False
+
+    monkeypatch.setattr("mcp_server_iterm2.tools.read.iterm2.Transaction", _TrackedTransaction)
+
+    session.async_get_line_info = AsyncMock(return_value=_line_info(overflow=0, total=10))
+    session.async_get_contents = AsyncMock(
+        return_value=[MagicMock(string=f"L{i}") for i in range(10)]
+    )
+
+    await get_scrollback_impl(client, session_id_arg="sess-1", env_session_id=None, n_lines=10)
+
+    assert enter_calls == ["<conn>"], "Transaction must be entered with the iTerm2 connection"
+    assert exit_calls == ["<conn>"], "Transaction must be exited (clean) after both RPCs"
+
+
+async def test_get_recent_output_wraps_line_info_and_contents_in_transaction(
+    simple_app, monkeypatch
+):
+    client = MagicMock()
+    client.require_app.return_value = simple_app
+    client.require_connection.return_value = "<conn>"
+    session = simple_app.get_session_by_id("sess-1")
+
+    entered = []
+
+    class _TrackedTransaction:
+        def __init__(self, conn):
+            entered.append(conn)
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *exc):
+            return False
+
+    monkeypatch.setattr("mcp_server_iterm2.tools.read.iterm2.Transaction", _TrackedTransaction)
+
+    session.async_get_line_info = AsyncMock(return_value=_line_info(overflow=0, total=5))
+    session.async_get_contents = AsyncMock(
+        return_value=[MagicMock(string=f"L{i}") for i in range(5)]
+    )
+
+    await get_recent_output_impl(client, session_id_arg="sess-1", env_session_id=None, cursor=None)
+    assert entered == ["<conn>"]
+
+
 @patch("mcp_server_iterm2.tools.read.iterm2")
 async def test_list_profiles_returns_name_and_guid(mock_iterm2):
     p1 = MagicMock()

@@ -125,14 +125,15 @@ async def get_scrollback_impl(
     """Return the last N lines of scrollback (capped at SCROLLBACK_MAX)."""
     app = client.require_app()
     session = resolve_session(app, session_id_arg, env_session_id)
-    info = await session.async_get_line_info()
-    overflow = info.overflow
-    total = info.scrollback_buffer_height + info.mutable_area_height
-    take = min(max(n_lines, 0), SCROLLBACK_MAX, total)
-    if take == 0:
-        return {"text": ""}
-    start = overflow + total - take
-    line_contents = await session.async_get_contents(start, take)
+    conn = client.require_connection()
+    async with iterm2.Transaction(conn):
+        info = await session.async_get_line_info()
+        total = info.scrollback_buffer_height + info.mutable_area_height
+        take = min(max(n_lines, 0), SCROLLBACK_MAX, total)
+        if take == 0:
+            return {"text": ""}
+        start = info.overflow + total - take
+        line_contents = await session.async_get_contents(start, take)
     return {"text": "\n".join(lc.string for lc in line_contents)}
 
 
@@ -143,42 +144,46 @@ async def get_recent_output_impl(
     env_session_id: str | None,
     cursor: str | None,
 ) -> dict[str, Any]:
-    """Return output since the given cursor, or the full buffer if no cursor supplied."""
+    """Return output since the given cursor, or the visible screen if no cursor supplied."""
     app = client.require_app()
     session = resolve_session(app, session_id_arg, env_session_id)
     sid = session.session_id
+    conn = client.require_connection()
 
-    info = await session.async_get_line_info()
-    total = info.scrollback_buffer_height + info.mutable_area_height
+    async with iterm2.Transaction(conn):
+        info = await session.async_get_line_info()
+        total = info.scrollback_buffer_height + info.mutable_area_height
 
-    last_seen: int | None
-    if cursor is None:
-        # First call: bound fetch to the visible screen (mutable area) so we
-        # don't dump the entire scrollback buffer on the caller.
-        # When there is no scrollback yet (fresh session), the mutable area
-        # starts at overflow itself, so there is nothing above to skip —
-        # leave last_seen=None to fetch all available lines without marking
-        # the cursor expired.
-        if info.scrollback_buffer_height > 0:
-            visible_start = info.overflow + info.scrollback_buffer_height
-            last_seen = visible_start - 1  # pretend caller already saw everything above
+        last_seen: int | None
+        if cursor is None:
+            # First call: bound fetch to the visible screen (mutable area) so we
+            # don't dump the entire scrollback buffer on the caller.
+            # When there is no scrollback yet (fresh session), the mutable area
+            # starts at overflow itself, so there is nothing above to skip —
+            # leave last_seen=None to fetch all available lines without marking
+            # the cursor expired.
+            if info.scrollback_buffer_height > 0:
+                visible_start = info.overflow + info.scrollback_buffer_height
+                last_seen = visible_start - 1  # pretend caller already saw everything above
+            else:
+                last_seen = None
         else:
-            last_seen = None
-    else:
-        _, last_seen = decode_cursor(cursor, expected_session_id=sid)
+            _, last_seen = decode_cursor(cursor, expected_session_id=sid)
 
-    diff = diff_since(overflow=info.overflow, line_count=total, last_seen=last_seen)
+        diff = diff_since(overflow=info.overflow, line_count=total, last_seen=last_seen)
 
-    if diff.first_line is None:
-        return {
-            "text": "",
-            "cursor": encode_cursor(session_id=sid, line_number=diff.new_last_seen),
-            "cursor_expired": diff.cursor_expired,
-        }
+        if diff.first_line is None:
+            return {
+                "text": "",
+                "cursor": encode_cursor(session_id=sid, line_number=diff.new_last_seen),
+                "cursor_expired": diff.cursor_expired,
+            }
 
-    assert diff.last_line is not None  # invariant: diff_since sets last_line when first_line is set
-    count = diff.last_line - diff.first_line + 1
-    line_contents = await session.async_get_contents(diff.first_line, count)
+        # invariant: diff_since sets last_line whenever first_line is set
+        assert diff.last_line is not None
+        count = diff.last_line - diff.first_line + 1
+        line_contents = await session.async_get_contents(diff.first_line, count)
+
     return {
         "text": "\n".join(lc.string for lc in line_contents),
         "cursor": encode_cursor(session_id=sid, line_number=diff.new_last_seen),
