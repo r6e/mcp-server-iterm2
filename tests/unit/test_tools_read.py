@@ -408,6 +408,18 @@ async def test_get_variable_window_scope_raises_when_no_window_for_tab(simple_ap
     assert exc.value.scope == "window"
 
 
+async def test_get_variable_rejects_long_name(simple_app):
+    client = MagicMock()
+    client.require_app.return_value = simple_app
+    with pytest.raises(ValueError):
+        await get_variable_impl(
+            client,
+            session_id_arg="sess-1",
+            env_session_id=None,
+            name="session." + ("x" * 250),
+        )
+
+
 @patch("mcp_server_iterm2.tools.read.iterm2")
 async def test_list_profiles_returns_name_and_guid(mock_iterm2):
     p1 = MagicMock()

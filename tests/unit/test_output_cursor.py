@@ -62,3 +62,11 @@ def test_diff_since_empty_session_returns_empty():
     assert result.last_line is None
     assert result.cursor_expired is False
     assert result.new_last_seen == -1
+
+
+def test_decode_cursor_rejects_oversize_input():
+    # Length must be a multiple of 4 so base64 padding is valid — otherwise
+    # the decoder rejects it first and the length guard is never reached.
+    big = "A" * 16388  # 16388 % 4 == 0; still > _MAX_CURSOR_LEN (16384)
+    with pytest.raises(CursorInvalid, match="exceeds limit"):
+        decode_cursor(big)

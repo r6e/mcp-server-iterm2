@@ -13,6 +13,18 @@ from mcp_server_iterm2.session import resolve_session
 
 _NOTIFICATION_TIMEOUT_S = 5.0
 
+_MAX_BADGE = 256
+_MAX_TITLE = 256
+_MAX_VAR_NAME = 256
+_MAX_VAR_VALUE = 4096
+_MAX_NOTIFICATION_TITLE = 128
+_MAX_NOTIFICATION_BODY = 1024
+
+
+def _check_length(field: str, value: str, limit: int) -> None:
+    if len(value) > limit:
+        raise ValueError(f"{field} length {len(value)} exceeds limit {limit}")
+
 
 async def set_badge_impl(
     client: Any,
@@ -21,6 +33,7 @@ async def set_badge_impl(
     env_session_id: str | None,
     text: str,
 ) -> dict[str, Any]:
+    _check_length("badge text", text, _MAX_BADGE)
     app = client.require_app()
     session = resolve_session(app, session_id_arg, env_session_id)
     await session.async_set_variable("user.badge", text)
@@ -34,6 +47,7 @@ async def set_title_impl(
     env_session_id: str | None,
     title: str,
 ) -> dict[str, Any]:
+    _check_length("title", title, _MAX_TITLE)
     app = client.require_app()
     session = resolve_session(app, session_id_arg, env_session_id)
     await session.async_set_name(title)
@@ -71,6 +85,8 @@ async def set_user_variable_impl(
 ) -> dict[str, Any]:
     if not name.startswith("user."):
         raise ValueError(f"variable name must start with 'user.' (got {name!r})")
+    _check_length("variable name", name, _MAX_VAR_NAME)
+    _check_length("variable value", value, _MAX_VAR_VALUE)
     app = client.require_app()
     session = resolve_session(app, session_id_arg, env_session_id)
     await session.async_set_variable(name, value)
@@ -83,6 +99,8 @@ async def post_notification_impl(*, title: str, body: str) -> dict[str, Any]:
     Does not take a client/connection parameter — uses osascript directly,
     not the iTerm2 SDK, because iTerm2 doesn't expose user-notification posting.
     """
+    _check_length("notification title", title, _MAX_NOTIFICATION_TITLE)
+    _check_length("notification body", body, _MAX_NOTIFICATION_BODY)
 
     # AppleScript string-literal escape (distinct from shell escaping):
     # double the backslashes first, then escape embedded double quotes and

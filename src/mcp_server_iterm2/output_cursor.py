@@ -8,6 +8,8 @@ from dataclasses import dataclass
 
 from mcp_server_iterm2.errors import CursorInvalid as CursorInvalid  # re-export
 
+_MAX_CURSOR_LEN = 16384
+
 
 def encode_cursor(*, session_id: str, line_number: int) -> str:
     payload = json.dumps({"sid": session_id, "line": line_number}).encode("utf-8")
@@ -15,6 +17,8 @@ def encode_cursor(*, session_id: str, line_number: int) -> str:
 
 
 def decode_cursor(cursor: str, *, expected_session_id: str | None = None) -> tuple[str, int]:
+    if len(cursor) > _MAX_CURSOR_LEN:
+        raise CursorInvalid(f"cursor length {len(cursor)} exceeds limit {_MAX_CURSOR_LEN}")
     try:
         raw = base64.urlsafe_b64decode(cursor.encode("ascii"))
         data = json.loads(raw.decode("utf-8"))
@@ -22,6 +26,8 @@ def decode_cursor(cursor: str, *, expected_session_id: str | None = None) -> tup
         line = int(data["line"])
     except (ValueError, KeyError, TypeError) as exc:
         raise CursorInvalid(str(exc)) from exc
+    if not isinstance(sid, str):
+        raise CursorInvalid("cursor sid is not a string")
     if expected_session_id is not None and sid != expected_session_id:
         raise CursorInvalid("cursor session_id mismatch")
     return sid, line

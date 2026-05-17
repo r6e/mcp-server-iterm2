@@ -21,6 +21,7 @@ from mcp_server_iterm2.output_cursor import (
 from mcp_server_iterm2.session import resolve_session
 
 SCROLLBACK_MAX = 5000
+_MAX_VAR_NAME = 256
 
 
 def list_sessions_impl(client: Any) -> dict[str, Any]:
@@ -189,6 +190,8 @@ async def get_variable_impl(
     name: str,
 ) -> dict[str, Any]:
     """Read an iTerm2 variable by fully-qualified name, routing by scope prefix."""
+    if len(name) > _MAX_VAR_NAME:
+        raise ValueError(f"variable name length {len(name)} exceeds limit {_MAX_VAR_NAME}")
     app = client.require_app()
     session = resolve_session(app, session_id_arg, env_session_id)
     if name.startswith("tab."):
