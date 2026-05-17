@@ -24,13 +24,17 @@ def make_tab(
     *,
     tab_id: int,
     sessions: list[MagicMock],
+    minimized: list[MagicMock] | None = None,
     current: MagicMock | None = None,
 ) -> MagicMock:
+    minimized_list = minimized or []
     t = MagicMock(name=f"tab-{tab_id}")
     t.tab_id = tab_id
     t.sessions = sessions
+    t.minimized_sessions = minimized_list
+    t.all_sessions = sessions + minimized_list
     t.current_session = current or (sessions[0] if sessions else None)
-    for s in sessions:
+    for s in sessions + minimized_list:
         s.tab = t
     return t
 
@@ -61,7 +65,7 @@ def make_app(
     app.terminal_windows = windows
     app.current_terminal_window = chosen_current
 
-    sessions_by_id = {s.session_id: s for w in windows for t in w.tabs for s in t.sessions}
+    sessions_by_id = {s.session_id: s for w in windows for t in w.tabs for s in t.all_sessions}
     app.get_session_by_id = lambda sid: sessions_by_id.get(sid)
 
     tabs_by_id = {t.tab_id: t for w in windows for t in w.tabs}

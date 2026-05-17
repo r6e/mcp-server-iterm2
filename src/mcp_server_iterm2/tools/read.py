@@ -46,7 +46,7 @@ def list_sessions_impl(client: Any) -> dict[str, Any]:
                     and tab.tab_id == current_tab_id
                     and window.window_id == current_window_id,
                 }
-                for s in tab.sessions
+                for s in tab.all_sessions
             ]
             out_tabs.append(
                 {

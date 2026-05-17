@@ -510,6 +510,23 @@ async def test_get_recent_output_wraps_line_info_and_contents_in_transaction(
     assert entered == ["<conn>"]
 
 
+def test_list_sessions_includes_minimized_sessions():
+    """When a pane is maximized, the other panes are minimized; list_sessions must include them."""
+    from tests.fixtures import make_app, make_session, make_tab, make_window
+
+    visible = make_session(session_id="sess-visible", name="zsh")
+    minimized = make_session(session_id="sess-minimized", name="bash")
+    tab = make_tab(tab_id=1, sessions=[visible], minimized=[minimized])
+    window = make_window(window_id="win-1", tabs=[tab])
+    app = make_app(windows=[window])
+
+    client = MagicMock()
+    client.require_app.return_value = app
+    result = list_sessions_impl(client)
+    sids = {s["session_id"] for s in result["windows"][0]["tabs"][0]["sessions"]}
+    assert sids == {"sess-visible", "sess-minimized"}
+
+
 @patch("mcp_server_iterm2.tools.read.iterm2")
 async def test_list_profiles_returns_name_and_guid(mock_iterm2):
     p1 = MagicMock()
