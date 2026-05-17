@@ -39,3 +39,22 @@ async def test_create_server_get_variable_translates_scope_unavailable():
     with pytest.raises(RuntimeError) as exc:
         await tool.fn(name="tab.foo", session_id="sess-1")
     assert str(exc.value) == to_error_text(ScopeUnavailable("tab"))
+
+
+def test_create_server_wraps_unknown_exceptions_as_generic_internal_error():
+    """Unknown exceptions must not leak third-party error messages to the agent."""
+    client = MagicMock()
+    client.require_app.side_effect = RuntimeError(
+        "internal: connection pool exhausted at 0xdeadbeef"
+    )
+    mcp = create_server(client=client)
+    tool = mcp._tool_manager.get_tool("list_sessions")
+    assert tool is not None
+    with pytest.raises(RuntimeError) as exc_info:
+        tool.fn()
+    msg = str(exc_info.value)
+    # The error message must NOT echo the inner message verbatim.
+    assert "connection pool exhausted" not in msg
+    assert "0xdeadbeef" not in msg
+    # But it should clearly indicate an internal error occurred.
+    assert "Internal error" in msg

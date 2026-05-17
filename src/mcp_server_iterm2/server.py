@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import logging
 import os
 from typing import Any
 
@@ -18,8 +19,23 @@ from mcp_server_iterm2.session import normalize_iterm_session_id
 from mcp_server_iterm2.tools import read as read_tools
 from mcp_server_iterm2.tools import write as write_tools
 
+log = logging.getLogger(__name__)
+
 _STARTUP_TIMEOUT_S = 5.0
 _STARTUP_POLL_INTERVAL_S = 0.1
+
+
+def _to_tool_error(exc: BaseException) -> RuntimeError:
+    """Convert any tool-impl exception into a safe RuntimeError for FastMCP.
+
+    Known errors (MCPIterm2Error) are surfaced verbatim via to_error_text.
+    Everything else collapses to a generic "Internal error: <ExceptionClass>"
+    so we never leak third-party library messages, stack frames, or addresses.
+    """
+    if isinstance(exc, MCPIterm2Error):
+        return RuntimeError(to_error_text(exc))
+    log.exception("unexpected error in tool", exc_info=exc)
+    return RuntimeError(f"Internal error: {type(exc).__name__}")
 
 
 def create_server(*, client: Any) -> FastMCP:
@@ -35,8 +51,8 @@ def create_server(*, client: Any) -> FastMCP:
         """List all windows, tabs, and sessions iTerm2 currently has open."""
         try:
             return read_tools.list_sessions_impl(client)
-        except MCPIterm2Error as e:
-            raise RuntimeError(to_error_text(e)) from e
+        except Exception as e:  # noqa: BLE001 — intentional broad catch at tool boundary
+            raise _to_tool_error(e) from e
 
     @mcp.tool()
     async def get_session_info(session_id: str | None = None) -> dict[str, Any]:
@@ -47,8 +63,8 @@ def create_server(*, client: Any) -> FastMCP:
                 session_id_arg=session_id,
                 env_session_id=_env_session_id(),
             )
-        except MCPIterm2Error as e:
-            raise RuntimeError(to_error_text(e)) from e
+        except Exception as e:  # noqa: BLE001 — intentional broad catch at tool boundary
+            raise _to_tool_error(e) from e
 
     @mcp.tool()
     async def get_screen_contents(session_id: str | None = None) -> dict[str, Any]:
@@ -59,8 +75,8 @@ def create_server(*, client: Any) -> FastMCP:
                 session_id_arg=session_id,
                 env_session_id=_env_session_id(),
             )
-        except MCPIterm2Error as e:
-            raise RuntimeError(to_error_text(e)) from e
+        except Exception as e:  # noqa: BLE001 — intentional broad catch at tool boundary
+            raise _to_tool_error(e) from e
 
     @mcp.tool()
     async def get_selection(session_id: str | None = None) -> dict[str, Any]:
@@ -71,8 +87,8 @@ def create_server(*, client: Any) -> FastMCP:
                 session_id_arg=session_id,
                 env_session_id=_env_session_id(),
             )
-        except MCPIterm2Error as e:
-            raise RuntimeError(to_error_text(e)) from e
+        except Exception as e:  # noqa: BLE001 — intentional broad catch at tool boundary
+            raise _to_tool_error(e) from e
 
     @mcp.tool()
     async def get_scrollback(session_id: str | None = None, n_lines: int = 200) -> dict[str, Any]:
@@ -84,8 +100,8 @@ def create_server(*, client: Any) -> FastMCP:
                 env_session_id=_env_session_id(),
                 n_lines=n_lines,
             )
-        except MCPIterm2Error as e:
-            raise RuntimeError(to_error_text(e)) from e
+        except Exception as e:  # noqa: BLE001 — intentional broad catch at tool boundary
+            raise _to_tool_error(e) from e
 
     @mcp.tool()
     async def get_recent_output(
@@ -99,8 +115,8 @@ def create_server(*, client: Any) -> FastMCP:
                 env_session_id=_env_session_id(),
                 cursor=cursor,
             )
-        except MCPIterm2Error as e:
-            raise RuntimeError(to_error_text(e)) from e
+        except Exception as e:  # noqa: BLE001 — intentional broad catch at tool boundary
+            raise _to_tool_error(e) from e
 
     @mcp.tool()
     async def get_variable(name: str, session_id: str | None = None) -> dict[str, Any]:
@@ -115,16 +131,16 @@ def create_server(*, client: Any) -> FastMCP:
                 env_session_id=_env_session_id(),
                 name=name,
             )
-        except MCPIterm2Error as e:
-            raise RuntimeError(to_error_text(e)) from e
+        except Exception as e:  # noqa: BLE001 — intentional broad catch at tool boundary
+            raise _to_tool_error(e) from e
 
     @mcp.tool()
     async def list_profiles() -> dict[str, Any]:
         """List available iTerm2 profiles by name and GUID."""
         try:
             return await read_tools.list_profiles_impl(client)
-        except MCPIterm2Error as e:
-            raise RuntimeError(to_error_text(e)) from e
+        except Exception as e:  # noqa: BLE001 — intentional broad catch at tool boundary
+            raise _to_tool_error(e) from e
 
     @mcp.tool()
     async def set_badge(text: str, session_id: str | None = None) -> dict[str, Any]:
@@ -136,8 +152,8 @@ def create_server(*, client: Any) -> FastMCP:
                 env_session_id=_env_session_id(),
                 text=text,
             )
-        except MCPIterm2Error as e:
-            raise RuntimeError(to_error_text(e)) from e
+        except Exception as e:  # noqa: BLE001 — intentional broad catch at tool boundary
+            raise _to_tool_error(e) from e
 
     @mcp.tool()
     async def set_title(title: str, session_id: str | None = None) -> dict[str, Any]:
@@ -149,8 +165,8 @@ def create_server(*, client: Any) -> FastMCP:
                 env_session_id=_env_session_id(),
                 title=title,
             )
-        except MCPIterm2Error as e:
-            raise RuntimeError(to_error_text(e)) from e
+        except Exception as e:  # noqa: BLE001 — intentional broad catch at tool boundary
+            raise _to_tool_error(e) from e
 
     @mcp.tool()
     async def set_tab_color(
@@ -166,8 +182,8 @@ def create_server(*, client: Any) -> FastMCP:
                 g=g,
                 b=b,
             )
-        except MCPIterm2Error as e:
-            raise RuntimeError(to_error_text(e)) from e
+        except Exception as e:  # noqa: BLE001 — intentional broad catch at tool boundary
+            raise _to_tool_error(e) from e
 
     @mcp.tool()
     async def set_user_variable(
@@ -182,16 +198,16 @@ def create_server(*, client: Any) -> FastMCP:
                 name=name,
                 value=value,
             )
-        except MCPIterm2Error as e:
-            raise RuntimeError(to_error_text(e)) from e
+        except Exception as e:  # noqa: BLE001 — intentional broad catch at tool boundary
+            raise _to_tool_error(e) from e
 
     @mcp.tool()
     async def post_notification(title: str, body: str) -> dict[str, Any]:
         """Post a macOS notification (banner) with the given title and body."""
         try:
             return await write_tools.post_notification_impl(title=title, body=body)
-        except MCPIterm2Error as e:
-            raise RuntimeError(to_error_text(e)) from e
+        except Exception as e:  # noqa: BLE001 — intentional broad catch at tool boundary
+            raise _to_tool_error(e) from e
 
     return mcp
 
