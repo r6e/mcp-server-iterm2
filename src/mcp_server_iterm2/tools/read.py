@@ -57,7 +57,9 @@ def list_sessions_impl(client: Any) -> dict[str, Any]:
                 }
             )
         out_windows.append({"window_id": window.window_id, "tabs": out_tabs})
-    return {"windows": out_windows}
+    buried = getattr(app, "buried_sessions", []) or []
+    out_buried = [{"session_id": s.session_id, "name": s.name} for s in buried]
+    return {"windows": out_windows, "buried_sessions": out_buried}
 
 
 async def get_session_info_impl(

@@ -39,7 +39,8 @@ def test_list_sessions_returns_hierarchy(simple_app):
                     }
                 ],
             }
-        ]
+        ],
+        "buried_sessions": [],
     }
 
 
@@ -525,6 +526,24 @@ def test_list_sessions_includes_minimized_sessions():
     result = list_sessions_impl(client)
     sids = {s["session_id"] for s in result["windows"][0]["tabs"][0]["sessions"]}
     assert sids == {"sess-visible", "sess-minimized"}
+
+
+def test_list_sessions_surfaces_buried_sessions():
+    """Buried sessions live outside the window→tab tree; expose them as a top-level list."""
+    from tests.fixtures import make_app, make_session, make_tab, make_window
+
+    visible = make_session(session_id="sess-visible", name="zsh")
+    buried = make_session(session_id="sess-buried", name="vim", buried=True)
+    tab = make_tab(tab_id=1, sessions=[visible])
+    window = make_window(window_id="win-1", tabs=[tab])
+    app = make_app(windows=[window], buried_sessions=[buried])
+
+    client = MagicMock()
+    client.require_app.return_value = app
+    result = list_sessions_impl(client)
+    assert result["buried_sessions"] == [
+        {"session_id": "sess-buried", "name": "vim"},
+    ]
 
 
 @patch("mcp_server_iterm2.tools.read.iterm2")

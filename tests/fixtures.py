@@ -56,16 +56,21 @@ def make_app(
     *,
     windows: list[MagicMock],
     current_window: MagicMock | None = None,
+    buried_sessions: list[MagicMock] | None = None,
 ) -> MagicMock:
     app = MagicMock(name="app")
     chosen_current = current_window or (windows[0] if windows else None)
+    buried = buried_sessions or []
     app.windows = windows
     app.current_window = chosen_current
     # Back-compat aliases so any caller still using the deprecated names sees the same data.
     app.terminal_windows = windows
     app.current_terminal_window = chosen_current
+    app.buried_sessions = buried
 
     sessions_by_id = {s.session_id: s for w in windows for t in w.tabs for s in t.all_sessions}
+    for s in buried:
+        sessions_by_id[s.session_id] = s
     app.get_session_by_id = lambda sid: sessions_by_id.get(sid)
 
     tabs_by_id = {t.tab_id: t for w in windows for t in w.tabs}

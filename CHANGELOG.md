@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- `list_sessions` now also returns a top-level `buried_sessions` array. Buried
+  sessions (created via the user's "Bury Session" command) are addressable via
+  `get_session_by_id` but were previously invisible to `list_sessions`.
+
 ## [0.1.0] - 2026-05-16
 
 ### Added

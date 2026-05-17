@@ -31,7 +31,7 @@ If you previously denied access: iTerm2 → Preferences → General → Magic �
 
 | Tool                  | Description                                                                 |
 | --------------------- | --------------------------------------------------------------------------- |
-| `list_sessions`       | Hierarchy of windows → tabs → sessions                                      |
+| `list_sessions`       | Tree of windows → tabs → sessions, plus a top-level `buried_sessions` list. |
 | `get_session_info`    | Title, working dir, profile, badge, dimensions, TTY                         |
 | `get_screen_contents` | Visible buffer + cursor position                                            |
 | `get_scrollback`      | Last N lines (default 200, max 5000)                                        |
