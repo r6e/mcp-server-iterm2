@@ -78,7 +78,7 @@ class ITermClient:
 
     async def connect_once(self) -> None:
         """Establish a single connection attempt. Raises on failure."""
-        cookie = request_cookie()
+        cookie = await asyncio.to_thread(request_cookie)
         os.environ["ITERM2_COOKIE"] = cookie
         self._connection = await iterm2.Connection.async_create()
         self._app = await iterm2.async_get_app(self._connection)

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import subprocess
 from typing import Any
 
@@ -97,7 +98,8 @@ async def post_notification_impl(*, title: str, body: str) -> dict[str, Any]:
 
     script = f'display notification "{_escape(body)}" with title "{_escape(title)}"'
     try:
-        result = subprocess.run(
+        result = await asyncio.to_thread(
+            subprocess.run,
             ["/usr/bin/osascript", "-e", script],
             capture_output=True,
             text=True,

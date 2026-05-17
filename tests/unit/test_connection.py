@@ -113,3 +113,27 @@ async def test_run_reconnect_loop_reconnects_on_disconnect(mock_iterm2, _):
     assert mock_iterm2.Connection.async_create.await_count >= 2, (
         "should have reconnected after disconnect"
     )
+
+
+@pytest.mark.asyncio
+@patch("mcp_server_iterm2.connection.iterm2")
+async def test_connect_once_does_not_block_event_loop(mock_iterm2, monkeypatch):
+    """request_cookie is a synchronous subprocess call; it must run off the loop."""
+    import threading
+
+    called_off_main = {"flag": False}
+
+    def blocking_request_cookie():
+        called_off_main["flag"] = threading.current_thread() is not threading.main_thread()
+        return "cookie-xyz"
+
+    monkeypatch.setattr(
+        "mcp_server_iterm2.connection.request_cookie", blocking_request_cookie
+    )
+    mock_iterm2.Connection.async_create = AsyncMock(return_value=MagicMock())
+    mock_iterm2.async_get_app = AsyncMock(return_value=MagicMock())
+
+    client = ITermClient()
+    await client.connect_once()
+
+    assert called_off_main["flag"], "request_cookie must run in a thread, not on the loop"

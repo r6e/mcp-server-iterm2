@@ -211,3 +211,23 @@ async def test_post_notification_passes_timeout(mock_run):
     )
     await post_notification_impl(title="t", body="b")
     assert mock_run.call_args.kwargs.get("timeout") == 5.0
+
+
+@patch("mcp_server_iterm2.tools.write.subprocess.run")
+async def test_post_notification_runs_subprocess_off_event_loop(mock_run):
+    import threading
+    called_threads = []
+
+    def _capture_thread(*args, **kwargs):
+        called_threads.append(threading.current_thread())
+        return subprocess.CompletedProcess(
+            args=args[0], returncode=0, stdout="", stderr=""
+        )
+
+    mock_run.side_effect = _capture_thread
+
+    await post_notification_impl(title="t", body="b")
+    assert len(called_threads) == 1
+    assert called_threads[0] is not threading.main_thread(), (
+        "subprocess.run must run off the event loop thread"
+    )
